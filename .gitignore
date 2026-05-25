@@ -21,3 +21,6 @@ site/dist/
 
 # Claude Code セッション一時領域（ready-compaction の Working Memory 等）
 .claude-session/
+
+# git worktree（session:spawn 等で作成。メインの作業対象外）
+/worktrees/
