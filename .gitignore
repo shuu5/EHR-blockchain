@@ -13,3 +13,8 @@ site/dist/
 
 # research の一時出力（参照用に手元へ置いた場合のみ無視）
 /tmp-research/
+
+# Playwright MCP の一時出力（スクショ・ログ・スナップショット）
+.playwright-mcp/
+# 動作確認用の一時スクリーンショット（ルート直下）
+/*.png

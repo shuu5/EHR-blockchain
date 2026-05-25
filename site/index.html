@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>電子カルテ×ブロックチェーン — 設計結論と検証ステータス</title>
+<style>
+:root{
+  --bg:#f7f8fa; --surface:#ffffff; --surface-2:#f0f2f5; --border:#dde1e7;
+  --text:#1c2330; --text-sub:#5b6677; --link:#0a5cc4;
+  --c-verified:#1a7f37; --c-verified_caution:#9a7000; --c-partial:#b45309;
+  --c-caution:#c2410c; --c-unverifiable:#b91c1c; --c-pending:#5b6677;
+  --kind-fact:#0a5cc4; --kind-conclusion:#7c3aed;
+  --onchain:#e7f0ff; --onchain-bd:#9dbcf0; --offchain:#e7f7ee; --offchain-bd:#93cfae;
+  --shadow:0 1px 3px rgba(20,30,50,.08),0 1px 2px rgba(20,30,50,.04);
+  --maxw:980px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f1320; --surface:#171c2b; --surface-2:#1f2638; --border:#2c3650;
+    --text:#e6e9f0; --text-sub:#9aa6bd; --link:#6ea8ff;
+    --c-verified:#46c46a; --c-verified_caution:#d9b14b; --c-partial:#e09b4a;
+    --c-caution:#f08a4a; --c-unverifiable:#f06a6a; --c-pending:#9aa6bd;
+    --onchain:#16243f; --onchain-bd:#2f4a78; --offchain:#13301f; --offchain-bd:#2c6a45;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f7f8fa; --surface:#ffffff; --surface-2:#f0f2f5; --border:#dde1e7;
+  --text:#1c2330; --text-sub:#5b6677; --link:#0a5cc4;
+  --c-verified:#1a7f37; --c-verified_caution:#9a7000; --c-partial:#b45309;
+  --c-caution:#c2410c; --c-unverifiable:#b91c1c; --c-pending:#5b6677;
+  --onchain:#e7f0ff; --onchain-bd:#9dbcf0; --offchain:#e7f7ee; --offchain-bd:#93cfae;
+}
+:root[data-theme="dark"]{
+  --bg:#0f1320; --surface:#171c2b; --surface-2:#1f2638; --border:#2c3650;
+  --text:#e6e9f0; --text-sub:#9aa6bd; --link:#6ea8ff;
+  --c-verified:#46c46a; --c-verified_caution:#d9b14b; --c-partial:#e09b4a;
+  --c-caution:#f08a4a; --c-unverifiable:#f06a6a; --c-pending:#9aa6bd;
+  --onchain:#16243f; --onchain-bd:#2f4a78; --offchain:#13301f; --offchain-bd:#2c6a45;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif;
+  line-height:1.8; letter-spacing:.01em; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 1.1rem}
+a{color:var(--link)}
+h1,h2,h3{line-height:1.4; letter-spacing:.01em}
+
+/* header */
+header.top{background:linear-gradient(135deg,var(--surface),var(--surface-2)); border-bottom:1px solid var(--border); padding:2rem 0 1.4rem}
+header.top h1{margin:.2rem 0 .5rem; font-size:1.7rem}
+.lead{color:var(--text-sub); margin:.3rem 0 1rem; max-width:64ch}
+.toolbar{display:flex; gap:.6rem; flex-wrap:wrap; align-items:center}
+.btn{background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:.4rem .8rem; font-size:.85rem; cursor:pointer; box-shadow:var(--shadow)}
+.btn:hover{border-color:var(--link)}
+.toc{display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.4rem; font-size:.85rem}
+.toc a{text-decoration:none; color:var(--text-sub); padding:.2rem .55rem; border:1px solid var(--border); border-radius:999px; background:var(--surface)}
+.toc a:hover{color:var(--link); border-color:var(--link)}
+
+/* legend */
+.legend{display:flex; gap:1.4rem; flex-wrap:wrap; margin:1rem 0 .2rem; font-size:.82rem; color:var(--text-sub)}
+.legend .grp{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
+.src-chip{display:inline-flex; align-items:center; gap:.3rem; padding:.1rem .5rem; border-radius:6px; border:1px solid var(--border)}
+.src-chip.fact{border-left:4px solid var(--kind-fact)}
+.src-chip.conclusion{border-left:4px solid var(--kind-conclusion)}
+
+/* section */
+section{padding:1.8rem 0 .6rem}
+section>h2{font-size:1.3rem; margin:.2rem 0 .3rem; display:flex; align-items:center; gap:.5rem}
+.sec-desc{color:var(--text-sub); font-size:.9rem; margin:.1rem 0 1rem; max-width:68ch}
+
+/* filter */
+.filterbar{position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--bg) 86%,transparent); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); padding:.7rem 0}
+.filterbar .wrap{display:flex; gap:1.4rem; flex-wrap:wrap; align-items:center}
+fieldset.fgroup{border:none; margin:0; padding:0; display:flex; gap:.45rem; flex-wrap:wrap; align-items:center}
+fieldset.fgroup legend{float:left; font-weight:700; font-size:.8rem; color:var(--text-sub); margin-right:.5rem; padding:0}
+.chk{display:inline-flex; align-items:center; gap:.3rem; font-size:.8rem; padding:.2rem .55rem; border:1px solid var(--border); border-radius:999px; background:var(--surface); cursor:pointer; user-select:none}
+.chk input{accent-color:var(--link); margin:0}
+#result-count{font-size:.8rem; color:var(--text-sub); margin-left:auto}
+
+/* cards */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:1rem}
+.card{background:var(--surface); border:1px solid var(--border); border-left:5px solid var(--c-pending); border-radius:12px; padding:1rem 1.1rem; box-shadow:var(--shadow)}
+.card[data-status="verified"]{border-left-color:var(--c-verified)}
+.card[data-status="verified_caution"]{border-left-color:var(--c-verified_caution)}
+.card[data-status="partial"]{border-left-color:var(--c-partial)}
+.card[data-status="caution"]{border-left-color:var(--c-caution)}
+.card[data-status="unverifiable"]{border-left-color:var(--c-unverifiable)}
+.card[hidden]{display:none}
+.card-head{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.4rem}
+.card-id{font-weight:800; font-size:.8rem; color:var(--text-sub); background:var(--surface-2); padding:.05rem .45rem; border-radius:6px}
+.card-kind{font-size:.72rem; color:var(--text-sub)}
+.card-title{margin:.1rem 0 .25rem; font-size:1.05rem}
+.card-oneliner{margin:.1rem 0 .5rem; color:var(--text)}
+details{border-top:1px dashed var(--border); padding-top:.45rem; margin-top:.2rem}
+summary{cursor:pointer; color:var(--link); font-size:.85rem; list-style-position:inside}
+summary:hover{text-decoration:underline}
+.card-body{margin:.6rem 0; font-size:.92rem}
+.caveat{background:color-mix(in srgb,var(--c-caution) 12%,var(--surface)); border-left:3px solid var(--c-caution); padding:.5rem .7rem; border-radius:6px; font-size:.86rem; margin:.5rem 0}
+.related{font-size:.8rem; color:var(--text-sub); margin:.3rem 0}
+.related a{text-decoration:none}
+.tags{display:flex; gap:.35rem; flex-wrap:wrap; margin:.5rem 0 .2rem}
+.tag{font-size:.72rem; background:var(--surface-2); color:var(--text-sub); padding:.1rem .5rem; border-radius:999px; border:1px solid var(--border)}
+.sources{font-size:.82rem; margin-top:.5rem}
+.sources ul{margin:.25rem 0 0; padding-left:1.1rem}
+
+/* badge */
+.badge{display:inline-flex; align-items:center; gap:.3rem; font-size:.74rem; font-weight:700; padding:.12rem .55rem; border-radius:999px; border:1px solid currentColor; white-space:nowrap}
+.badge-verified{color:var(--c-verified); background:color-mix(in srgb,var(--c-verified) 13%,transparent)}
+.badge-verified_caution{color:var(--c-verified_caution); background:color-mix(in srgb,var(--c-verified_caution) 13%,transparent)}
+.badge-partial{color:var(--c-partial); background:color-mix(in srgb,var(--c-partial) 13%,transparent)}
+.badge-caution{color:var(--c-caution); background:color-mix(in srgb,var(--c-caution) 13%,transparent)}
+.badge-unverifiable{color:var(--c-unverifiable); background:color-mix(in srgb,var(--c-unverifiable) 13%,transparent)}
+.badge-pending{color:var(--c-pending); background:color-mix(in srgb,var(--c-pending) 13%,transparent)}
+
+/* term tooltip */
+abbr.term{text-decoration:underline dotted; text-underline-offset:3px; cursor:help; border:0}
+
+/* matrix */
+.matrix-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:12px}
+table.matrix{width:100%; border-collapse:collapse; font-size:.85rem; background:var(--surface); min-width:640px}
+table.matrix th,table.matrix td{text-align:left; padding:.55rem .7rem; border-bottom:1px solid var(--border); vertical-align:top}
+table.matrix thead th{background:var(--surface-2); position:sticky; top:0; font-size:.78rem}
+table.matrix tr:last-child td{border-bottom:none}
+
+/* diagrams */
+.diagram{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; margin:0 0 1.2rem; box-shadow:var(--shadow)}
+.diagram h3{margin:.1rem 0 .2rem; font-size:1rem}
+.diagram p.cap{color:var(--text-sub); font-size:.82rem; margin:.1rem 0 .7rem}
+.diagram svg{width:100%; height:auto; display:block; max-width:760px; margin:0 auto}
+.svg-box{fill:var(--surface); stroke:var(--border)}
+.svg-on{fill:var(--onchain); stroke:var(--onchain-bd)}
+.svg-off{fill:var(--offchain); stroke:var(--offchain-bd)}
+.svg-t{fill:var(--text); font-size:13px; font-family:inherit}
+.svg-ts{fill:var(--text-sub); font-size:11px; font-family:inherit}
+.svg-line{stroke:var(--text-sub); stroke-width:1.5; fill:none}
+.svg-dash{stroke:var(--text-sub); stroke-width:1.5; fill:none; stroke-dasharray:5 4}
+
+/* final */
+.final{background:linear-gradient(135deg,var(--surface),var(--surface-2)); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.3rem; box-shadow:var(--shadow)}
+.final ol{margin:.5rem 0; padding-left:1.3rem}
+.final li{margin:.4rem 0}
+.keywarn{margin-top:.9rem}
+.keywarn li{margin:.3rem 0}
+
+footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4rem; color:var(--text-sub); font-size:.82rem}
+.skip{position:absolute; left:-999px}
+.skip:focus{left:1rem; top:1rem; background:var(--surface); padding:.5rem; z-index:100; border:1px solid var(--link); border-radius:6px}
+</style>
+</head>
+<body>
+<a href="#section-conclusions" class="skip">本文へスキップ</a>
+
+<header class="top">
+  <div class="wrap">
+    <h1>電子カルテ × ブロックチェーン<br>— 設計結論と検証ステータス</h1>
+    <p class="lead">過去の検討から到達した最終結論を、<strong>情報源の区分</strong>（外部で確認できた事実 / 過去会話由来の設計結論）と、<strong>2024–2026 の最新文献による検証ステータス</strong>を添えて整理したものです。各カードを開くと根拠と出典を確認できます。</p>
+    <div class="toolbar">
+      <button class="btn" id="theme-toggle" aria-label="テーマ切替">🌓 テーマ</button>
+      <nav class="toc" aria-label="目次">
+        <a href="#section-facts">外部事実</a>
+        <a href="#section-conclusions">設計結論11</a>
+        <a href="#section-diagrams">アーキ図</a>
+        <a href="#section-matrix">検証マトリクス</a>
+        <a href="#section-final">最終結論</a>
+      </nav>
+    </div>
+    <div class="legend">
+      <div class="grp"><strong>情報源:</strong>
+        <span class="src-chip fact">外部事実（一次資料で確認）</span>
+        <span class="src-chip conclusion">設計結論（過去会話由来）</span>
+      </div>
+    </div>
+    <div class="legend" id="legend-status"><div class="grp"><strong>検証:</strong></div></div>
+  </div>
+</header>
+
+<div class="filterbar">
+  <div class="wrap">
+    <fieldset class="fgroup" id="filter-status"><legend>検証ステータス</legend></fieldset>
+    <fieldset class="fgroup" id="filter-kind">
+      <legend>種別</legend>
+      <label class="chk"><input type="checkbox" class="f-kind" value="external_fact" checked> 外部事実</label>
+      <label class="chk"><input type="checkbox" class="f-kind" value="conclusion" checked> 設計結論</label>
+    </fieldset>
+    <output id="result-count" role="status" aria-live="polite"></output>
+  </div>
+</div>
+
+<main class="wrap">
+  <section id="section-facts">
+    <h2>外部資料で再確認できた事実</h2>
+    <p class="sec-desc">原典が「外部資料で確認済み」と位置づける3点。一次資料（厚労省・HL7・NIST）に照らして検証しました。</p>
+    <div class="grid" id="facts-grid"></div>
+  </section>
+
+  <section id="section-conclusions">
+    <h2>過去会話から抽出された設計結論（C1–C11）</h2>
+    <p class="sec-desc">原典は外部未検証の「設計結論」と明示。本サイトでは 2024–2026 の学術・規制動向に照らした検証ステータスを付与しています。フィルタで絞り込めます。</p>
+    <div class="grid" id="concl-grid"></div>
+  </section>
+
+  <section id="section-diagrams">
+    <h2>アーキテクチャ図</h2>
+    <p class="sec-desc">結論の中核となる3つの構造を図解します。要素にカーソルを合わせると補足が出ます。</p>
+    <div class="diagram">
+      <h3>図1: 2層分離アーキテクチャ（C1・C2・C7）</h3>
+      <p class="cap">実データは暗号化してオフチェーンに保存し、ブロックチェーンには参照子CIDと権限・同意・監査のみを記録する。</p>
+      <svg viewBox="0 0 720 300" role="img" aria-labelledby="d1t d1d">
+        <title id="d1t">2層分離アーキテクチャ図</title>
+        <desc id="d1d">上段のオフチェーン層に暗号化した診療記録の実データ（IPFS/病院サーバー）とCIDを置き、下段のオンチェーン層には同意履歴・アクセス権・監査証跡・CID記録のみを置く。実データはブロックチェーンに載らない。</desc>
+        <rect class="svg-off" x="10" y="15" width="700" height="120" rx="10"/>
+        <text class="svg-t" x="26" y="40" font-weight="700">オフチェーン層 — 実データ（大容量・秘匿）</text>
+        <rect class="svg-box" x="34" y="56" width="190" height="60" rx="8"/>
+        <text class="svg-t" x="129" y="81" text-anchor="middle">暗号化された</text>
+        <text class="svg-t" x="129" y="100" text-anchor="middle">診療記録</text>
+        <rect class="svg-box" x="264" y="56" width="190" height="60" rx="8"/>
+        <text class="svg-t" x="359" y="81" text-anchor="middle">IPFS / 病院サーバー</text>
+        <text class="svg-ts" x="359" y="100" text-anchor="middle">分散保存・冗長化</text>
+        <rect class="svg-box" x="494" y="56" width="190" height="60" rx="8"/>
+        <text class="svg-t" x="589" y="81" text-anchor="middle">CID（参照子）</text>
+        <text class="svg-ts" x="589" y="100" text-anchor="middle">データの所在を指す</text>
+        <rect class="svg-on" x="10" y="165" width="700" height="120" rx="10"/>
+        <text class="svg-t" x="26" y="190" font-weight="700">オンチェーン層 — 台帳（改ざん耐性）</text>
+        <rect class="svg-box" x="34" y="208" width="150" height="58" rx="8"/>
+        <text class="svg-t" x="109" y="242" text-anchor="middle">同意履歴</text>
+        <rect class="svg-box" x="204" y="208" width="150" height="58" rx="8"/>
+        <text class="svg-t" x="279" y="242" text-anchor="middle">アクセス権</text>
+        <rect class="svg-box" x="374" y="208" width="150" height="58" rx="8"/>
+        <text class="svg-t" x="449" y="242" text-anchor="middle">監査証跡</text>
+        <rect class="svg-box" x="544" y="208" width="140" height="58" rx="8"/>
+        <text class="svg-t" x="614" y="242" text-anchor="middle">CID記録</text>
+        <path class="svg-dash" d="M589,118 L614,206" marker-end="url(#arrow)"/>
+        <text class="svg-ts" x="498" y="155">↓ CIDと権限のみ記録</text>
+      </svg>
+    </div>
+
+    <div class="diagram">
+      <h3>図2: ハイブリッド鍵管理フロー（C3・C4・C5）</h3>
+      <p class="cap">患者が権限主体。病院はHSMに鍵を閉じ込め署名・復号処理のみ実行し、秘密鍵はMPC・閾値署名で分散する（一箇所に完全な鍵を置かない）。</p>
+      <svg viewBox="0 0 720 320" role="img" aria-labelledby="d2t d2d">
+        <title id="d2t">ハイブリッド鍵管理フロー図</title>
+        <desc id="d2d">患者レーンで同意・権限付与、病院レーンでHSMが鍵を保護し署名・復号のみ実行、台帳レーンで権限と同意を記録する。秘密鍵はMPC・閾値署名で患者・病院・第三者に分散される。</desc>
+        <rect class="svg-box" x="10" y="15" width="225" height="230" rx="10"/>
+        <rect class="svg-box" x="247" y="15" width="225" height="230" rx="10"/>
+        <rect class="svg-box" x="484" y="15" width="226" height="230" rx="10"/>
+        <text class="svg-t" x="122" y="40" text-anchor="middle" font-weight="700">患者（権限主体）</text>
+        <text class="svg-t" x="359" y="40" text-anchor="middle" font-weight="700">病院 / HSM</text>
+        <text class="svg-t" x="597" y="40" text-anchor="middle" font-weight="700">台帳（ブロックチェーン）</text>
+        <rect class="svg-on" x="32" y="70" width="180" height="60" rx="8"/>
+        <text class="svg-t" x="122" y="95" text-anchor="middle">① 同意・</text>
+        <text class="svg-t" x="122" y="114" text-anchor="middle">権限付与</text>
+        <rect class="svg-on" x="269" y="70" width="180" height="60" rx="8"/>
+        <text class="svg-t" x="359" y="95" text-anchor="middle">② HSMが鍵を保護</text>
+        <text class="svg-ts" x="359" y="114" text-anchor="middle">署名・復号のみ実行</text>
+        <rect class="svg-off" x="269" y="150" width="180" height="52" rx="8"/>
+        <text class="svg-ts" x="359" y="180" text-anchor="middle">秘密鍵はHSMから出ない</text>
+        <rect class="svg-on" x="506" y="70" width="182" height="60" rx="8"/>
+        <text class="svg-t" x="597" y="95" text-anchor="middle">③ 権限・同意を</text>
+        <text class="svg-t" x="597" y="114" text-anchor="middle">記録</text>
+        <path class="svg-line" d="M214,100 L267,100" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M451,100 L504,100" marker-end="url(#arrow)"/>
+        <rect class="svg-box" x="32" y="262" width="656" height="44" rx="8"/>
+        <text class="svg-ts" x="359" y="289" text-anchor="middle">MPC・閾値署名・プロキシ再暗号化で鍵を分散管理（患者・病院・第三者バックアップ）— 単一主体が完全な鍵を持たない</text>
+      </svg>
+    </div>
+
+    <div class="diagram">
+      <h3>図3: 他院への診療情報提供フロー（C8）</h3>
+      <p class="cap">提供先を常時IPFSクラスターに参加させず、ゲートウェイ経由で暗号化データを取得し、別チャネルでプロキシ再暗号化により復号権限を付与する。</p>
+      <svg viewBox="0 0 720 330" role="img" aria-labelledby="d3t d3d">
+        <title id="d3t">他院共有シーケンス図</title>
+        <desc id="d3d">患者の同意のもと、提供元病院がゲートウェイ経由で暗号化データを提供先病院に渡し、別チャネルでプロキシ再暗号化により復号権限を付与する。提供先はクラスターに参加しなくてよい。</desc>
+        <g text-anchor="middle">
+          <rect class="svg-box" x="40" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="100" y="41">患者</text>
+          <rect class="svg-box" x="210" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="270" y="41">提供元病院A</text>
+          <rect class="svg-box" x="390" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="450" y="41">ゲートウェイ</text>
+          <rect class="svg-box" x="570" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="630" y="41">提供先病院B</text>
+        </g>
+        <line class="svg-dash" x1="100" y1="57" x2="100" y2="315"/>
+        <line class="svg-dash" x1="270" y1="57" x2="270" y2="315"/>
+        <line class="svg-dash" x1="450" y1="57" x2="450" y2="315"/>
+        <line class="svg-dash" x1="630" y1="57" x2="630" y2="315"/>
+        <path class="svg-line" d="M100,95 L270,95" marker-end="url(#arrow)"/>
+        <text class="svg-ts" x="185" y="88" text-anchor="middle">① 提供に同意</text>
+        <path class="svg-line" d="M270,140 L450,140" marker-end="url(#arrow)"/>
+        <text class="svg-ts" x="360" y="133" text-anchor="middle">② 暗号化データをCID参照で送出</text>
+        <path class="svg-line" d="M450,185 L630,185" marker-end="url(#arrow)"/>
+        <text class="svg-ts" x="540" y="178" text-anchor="middle">③ 暗号化データ取得（クラスター不参加でOK）</text>
+        <path class="svg-line" d="M270,240 L630,240" marker-end="url(#arrow)"/>
+        <text class="svg-ts" x="450" y="233" text-anchor="middle">④ 別チャネルで復号権限付与（プロキシ再暗号化）</text>
+        <rect class="svg-on" x="572" y="262" width="116" height="44" rx="8"/>
+        <text class="svg-ts" x="630" y="289" text-anchor="middle">⑤ 復号して参照</text>
+      </svg>
+    </div>
+  </section>
+
+  <section id="section-matrix">
+    <h2>検証マトリクス（全14主張の判定一覧）</h2>
+    <p class="sec-desc">外部事実3点と設計結論11点の検証判定・根拠・出典の総覧です。</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th>ID</th><th>主張の要約</th><th>判定</th><th>コンセンサス</th><th>出典</th></tr></thead>
+        <tbody id="matrix-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="section-final">
+    <h2>最終結論</h2>
+    <div class="final" id="final-box"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>検証手法: <code>research:controller-search</code>（5並列調査→統合→品質判定 PASS）。出典は厚労省・HL7・NIST・WHO・EDPB・理研などの一次資料＋2024–2026の学術論文60件以上。検証日 2026-05-25。</p>
+    <p>原典: <code>source/emr_blockchain_conclusion_verified.md</code>。本サイトはオフラインで動作する単一HTMLです。検証の詳細は <code>verification/research-report.md</code> を参照。</p>
+  </div>
+</footer>
+
+<svg id="svg-defs" aria-hidden="true" width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--text-sub)"/>
+    </marker>
+  </defs>
+</svg>
+
+<script type="application/json" id="app-data">
+{
+  "meta": { "title": "電子カルテ×ブロックチェーン 結論検証", "lastVerified": "2026-05-25" },
+  "terms": [
+    { "abbr": "EHR", "full": "Electronic Health Record", "ja": "電子的に管理される健康記録全般" },
+    { "abbr": "FHIR", "full": "Fast Healthcare Interoperability Resources", "ja": "HL7が策定する医療情報交換標準" },
+    { "abbr": "HSM", "full": "Hardware Security Module", "ja": "暗号鍵を保護し暗号処理を行う物理デバイス" },
+    { "abbr": "IPFS", "full": "InterPlanetary File System", "ja": "オフチェーン保存先として想定された分散ファイルシステム" },
+    { "abbr": "CID", "full": "Content Identifier", "ja": "IPFS上のデータを参照する識別子" },
+    { "abbr": "MPC", "full": "Multi-Party Computation", "ja": "単一主体が完全な秘密鍵を持たない分散計算" },
+    { "abbr": "LLM", "full": "Large Language Model", "ja": "電子カルテ文脈を読める説明支援AIモデル" }
+  ],
+  "externalFacts": [
+    {
+      "id": "F1", "title": "厚労省 医療情報システム安全管理ガイドライン 第6.0版",
+      "oneLiner": "日本で医療情報を扱うシステムの公的な安全管理基準が存在する。",
+      "body": "厚生労働省は「医療情報システムの安全管理に関するガイドライン 第6.0版」を公表しており、日本で医療情報を扱うシステムの公的な安全管理基準として参照すべき文書が存在することは確認できた。ブロックチェーン採否以前に、この種の安全管理基準への適合が前提となる。",
+      "verificationStatus": "verified_caution",
+      "caveat": "第6.0版（2023年5月）は2026-05-25時点で最新だが、第6.1版（案）が2026年3月に提示・パブコメ中で2026年5月公表予定。新たに「保守委託機関編」が追加される。近く第6.0版は最新でなくなる見込み。",
+      "technologies": ["規制", "日本"], "relatedFacts": [],
+      "sources": [
+        { "label": "厚労省 第6.0版", "url": "https://www.mhlw.go.jp/stf/shingi/0000516275_00006.html" },
+        { "label": "第6.1版（案）システム運用編", "url": "https://www.mhlw.go.jp/content/10808000/001675755.pdf" }
+      ]
+    },
+    {
+      "id": "F2", "title": "FHIR — HL7策定の医療情報交換標準",
+      "oneLiner": "Resources単位・API重視で、JSON/XML/HTTP/OAuthと整合する相互運用標準。",
+      "body": "FHIRはHL7が策定した医療情報交換標準で、臨床・事務情報を効率的に交換することを目的とする。情報をResourcesというモジュール単位で表現し、API重視の設計で、JSON・XML・HTTP・OAuthといった一般的なウェブ技術と整合する。全項目をHL7公式の一次資料で裏付け確認した。",
+      "verificationStatus": "verified",
+      "caveat": "補足: FHIRはRESTを必須とはしない（他の実装方式も許容）。「API重視」は正確だが、RESTが唯一の方式ではない点に留意。",
+      "technologies": ["FHIR", "相互運用"], "relatedFacts": [],
+      "sources": [ { "label": "HL7 FHIR Overview", "url": "https://www.hl7.org/fhir/overview.html" } ]
+    },
+    {
+      "id": "F3", "title": "HSM — NIST定義の鍵保護物理デバイス",
+      "oneLiner": "暗号鍵を保護・管理し暗号処理を提供する物理デバイス（耐タンパ性）。",
+      "body": "NISTはHSMを「暗号鍵を保護・管理し、暗号処理を提供する物理デバイス」と定義する。秘密鍵を一般サーバーのメモリやファイルから切り離す方針は、概念的にも技術的にも妥当性が高い。",
+      "verificationStatus": "verified",
+      "caveat": "NIST内に2系統の定義あり。SP 800-57は耐タンパ性を明示しないが、SP 1800-16が耐タンパ性・侵入耐性を明記する。原典の記述は複数定義の要素を組み合わせたもの。",
+      "technologies": ["HSM", "鍵管理"], "relatedFacts": [],
+      "sources": [ { "label": "NIST CSRC Glossary: HSM", "url": "https://csrc.nist.gov/glossary/term/hardware_security_module_hsm" } ]
+    }
+  ],
+  "conclusions": [
+    {
+      "id": "C1", "title": "ブロックチェーンは記録層として使う",
+      "oneLiner": "診療記録本体ではなく、同意・権限・監査証跡の記録層として用いる。",
+      "body": "中心結論は、診療記録そのものをブロックチェーンに保存するのではなく、暗号化した実データはオフチェーンに保存し、ブロックチェーンにはアクセス権・同意履歴・監査証跡・参照情報のみを載せるべき、というもの。医療記録の大容量性・秘匿性・訂正運用・費用・性能の制約を踏まえた実装判断である。",
+      "verificationStatus": "verified",
+      "caveat": "規制面の強い裏付けあり: EDPB（2025）が「公開ブロックチェーンへの個人データ保存はGDPR第17条=忘れられる権利と原理的に矛盾」と明示。記録層用途の最強の根拠。課題はスマートコントラクトへの同意エンコード複雑性。",
+      "technologies": ["ブロックチェーン", "監査証跡"], "layer": "onchain", "relatedFacts": ["F1"],
+      "sources": [
+        { "label": "EDPB/GDPR矛盾 (OMFIF 2025)", "url": "https://www.omfif.org/2025/06/european-data-protection-board-puts-blockchain-at-a-gdpr-crossroads/" },
+        { "label": "Patient-Centric BC Framework (arXiv 2025)", "url": "https://arxiv.org/pdf/2511.17464" }
+      ]
+    },
+    {
+      "id": "C2", "title": "実データは暗号化オフチェーン、参照と権限を分離",
+      "oneLiner": "暗号化データはIPFS/病院サーバー、ブロックチェーンにはCIDと権限のみ。",
+      "body": "暗号化した診療記録をIPFSまたは病院サーバーに保存し、ブロックチェーンにはCIDとアクセス権限を記録する。この分離により保存レイヤーと権限レイヤーを独立に設計でき、台帳の完全性と実データの可用性・容量問題を切り分けられる。",
+      "verificationStatus": "verified",
+      "caveat": "2024-2025論文の支配的パターン（ABE暗号化→IPFSにCID→オンチェーンにアンカリング）。EHRChainは248 TPS/412msを実測。課題: IPFSはピン留めしないとGCでデータ消失（「分散保存=永続保存」は誤解）。",
+      "technologies": ["IPFS", "CID", "暗号化"], "layer": "storage", "relatedFacts": [],
+      "sources": [ { "label": "ABE+IPFS EHR (Sci Rep 2025)", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12494854/" } ]
+    },
+    {
+      "id": "C3", "title": "患者・病院ハイブリッド鍵管理",
+      "oneLiner": "患者単独の秘密鍵管理より、病院や第三者が支援できるハイブリッドが現実的。",
+      "body": "日本の高齢化・患者のデジタル習熟度のばらつき・病院運用の現実を踏まえると、患者だけが秘密鍵を完全管理する方式は普及しにくい。患者を権限主体としつつ、病院や第三者バックアップが関与できるハイブリッドな鍵管理・代理操作の仕組みが必要。",
+      "verificationStatus": "verified",
+      "caveat": "患者単独鍵の「鍵紛失問題」は学術・業界で広く認識（MedRec等）。日本固有文脈（高齢化・低EHR普及率）がハイブリッドを支持。ただし病院が鍵管理を担うと患者プライバシーが形骸化するトレードオフあり。",
+      "technologies": ["鍵管理", "日本"], "layer": "key_management", "relatedFacts": ["F3"],
+      "sources": [ { "label": "Blockchain for Japanese Healthcare (PMC 2020)", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6996742/" } ]
+    },
+    {
+      "id": "C4", "title": "MPC・閾値署名・プロキシ再暗号化で分散管理",
+      "oneLiner": "秘密鍵を一箇所に置かず、暗号技術で分散管理する。",
+      "body": "複数主体が同じ秘密鍵をコピーして持つ設計は危険であり、秘密鍵を完全な形で一箇所に置かない設計が必要。実装候補としてMPC・閾値署名・プロキシ再暗号化・スマートコントラクトによる事前同意記録を組み合わせる。原典では外部未検証の設計結論と明示されていた。",
+      "verificationStatus": "verified",
+      "caveat": "研究面は裏付けあり（プロキシ再暗号化のEHR応用は2024-2025に集中、NISTがNIST IR 8214Cで閾値スキーム標準化中）。ただしMPCの医療応用の多くは「共同データ分析」用途で、「患者の鍵管理」への直接適用は実用面では限定的。",
+      "technologies": ["MPC", "閾値署名", "PRE"], "layer": "key_management", "relatedFacts": [],
+      "sources": [ { "label": "Dynamic PRE for EHR (EURASIP 2025)", "url": "https://link.springer.com/article/10.1186/s13635-025-00200-y" } ]
+    },
+    {
+      "id": "C5", "title": "病院側の鍵管理にHSMが有力",
+      "oneLiner": "鍵をHSMに閉じ込め、署名・復号処理のみ実行させる。",
+      "body": "病院に鍵管理を委ねる場合でも、通常のサーバー上に鍵を置くのではなく、HSMに鍵を閉じ込めて署名や復号などの処理だけを実行させる方針が最も現実的。NISTのHSM定義と整合し、病院所在地に固定された鍵利用環境を作る発想は技術的に十分現実的。",
+      "verificationStatus": "verified",
+      "caveat": "業界標準として非常に高いコンセンサス。HIPAA準拠ガイドで「秘密鍵はHSMから出てはならない」と明記、FIPS 140-3 Level 3推奨。医療セクターがHSM市場の最高成長。反例ほぼなし。課題は中小病院のコスト（Cloud HSMで緩和）。",
+      "technologies": ["HSM", "鍵管理"], "layer": "key_management", "relatedFacts": ["F3"],
+      "sources": [ { "label": "Healthcare HSM Deployment Guide", "url": "https://www.accountablehq.com/post/healthcare-hsm-deployment-guide-architecture-hipaa-compliance-and-best-practices" } ]
+    },
+    {
+      "id": "C6", "title": "FHIRブリッジ型導入が現実的",
+      "oneLiner": "既存EHRの全面置換でなく、FHIR形式のブリッジ層を追加する。",
+      "body": "既存の電子カルテを全面置換するのではなく、既存システムからFHIR形式でデータを出し入れするブリッジ層を追加する方が、実装負荷も現場負担も小さい。FHIR自体が既存システムと共存しやすい標準であり、段階的統合の考え方は公開資料とも整合する。",
+      "verificationStatus": "verified",
+      "caveat": "業界・学術・政策の三方向で強コンセンサス。FHIRファサード実装が実証され、全面置換は数百万ドル＋重大ダウンタイム。日本も標準型電子カルテ戦略がFHIR API連携型を採用。課題はFHIR実装の非統一とAPI利用料・人材不足。",
+      "technologies": ["FHIR", "相互運用"], "layer": "interop", "relatedFacts": ["F2"],
+      "sources": [ { "label": "FHIR Facade for Legacy EHR (PubMed 2025)", "url": "https://pubmed.ncbi.nlm.nih.gov/40588950/" } ]
+    },
+    {
+      "id": "C7", "title": "台帳分散と実データ冗長化を分離設計",
+      "oneLiner": "ブロックチェーン台帳の分散複製とIPFS実データ冗長化は別レイヤー。",
+      "body": "「分散型記録」という語を、ブロックチェーン台帳の分散複製と、IPFS側の実データ冗長化という二つの独立したレイヤーに分けて理解すべき。これによりどのノード障害で何が失われるか、どの冗長化がどの可用性を担保するかを切り分けて評価できる。",
+      "verificationStatus": "verified",
+      "caveat": "暗黙の標準として全論文が分離設計を採用（台帳ノード数≠IPFSノード数）。EHRChainは「3つ以上のIPFSノード」でランサムウェア耐性を確保。明示的に「分離すべき」と論じた論文は少数。課題はCID参照先消失時の整合性（ピン留め管理）。",
+      "technologies": ["ブロックチェーン", "IPFS"], "layer": "storage", "relatedFacts": [],
+      "sources": [ { "label": "EHR with Blockchain and IPFS (PMC 9183171)", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9183171/" } ]
+    },
+    {
+      "id": "C8", "title": "他院共有はゲートウェイ経由で",
+      "oneLiner": "提供先を常にIPFSクラスター参加させず、GW経由＋別チャネルで権限付与。",
+      "body": "診療情報提供のたびに提供先病院をIPFSクラスターへ正式参加させる必要はなく、ゲートウェイ経由で暗号化データを取得し、別チャネルで復号権限を与える構成が実務上もっとも扱いやすい。長期の共同管理と一時的な情報提供を区別し、最小権限の原則に合致する。",
+      "verificationStatus": "partial",
+      "caveat": "PRE＋別チャネル鍵配布の技術的妥当性は複数論文で裏付けあり。だが「受信側がIPFSクラスターに参加しない構成」を医療文脈で正面から論じた学術論文は未確認。技術的には妥当だが医療実装としての明示的裏付けは弱い。課題は公開ゲートウェイ使用時のアクセスパターン漏洩。",
+      "technologies": ["IPFS", "PRE", "他院共有"], "layer": "sharing", "relatedFacts": [],
+      "sources": [ { "label": "Inter-hospital PRE exchange (ScienceDirect 2025)", "url": "https://www.sciencedirect.com/science/article/abs/pii/S0010482525008133" } ]
+    },
+    {
+      "id": "C9", "title": "真の価値は高品質データ基盤にある",
+      "oneLiner": "保存技術自体でなく、標準化・同意管理・再利用可能なデータ基盤が本質。",
+      "body": "ブロックチェーンやIPFSの採用自体が価値なのではなく、標準化され、同意管理が可能で、再利用可能な高品質医療データ基盤を作ることが本質。その上で患者向け説明支援、医師への情報伝達、経時変化把握、研究利用、AI学習基盤化といった二次価値が主要テーマになる。",
+      "verificationStatus": "verified",
+      "caveat": "「ブロックチェーン医療はPoC止まり・価値は標準化データにある」が学術コンセンサス（複数systematic review）。原典のFHIR重視はこの潮流と整合し、むしろ先進的。補足: 医薬品サプライチェーン追跡など保存技術自体に価値を持つ領域も存在する。",
+      "technologies": ["FHIR", "データ標準化"], "layer": "data_value", "relatedFacts": ["F2"],
+      "sources": [ { "label": "Blockchain Healthcare SLR (PMC 12071524)", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12071524/" } ]
+    },
+    {
+      "id": "C10", "title": "LLMは医療機関管理下の説明支援に寄せる",
+      "oneLiner": "診断でなく患者説明・病状整理・コミュニケーション支援に重点を置く。",
+      "body": "電子カルテ文脈をLLMに与える用途として、診断そのものよりも患者説明の平易化・病状整理・受診要否の補助・コミュニケーション支援に重点を置く設計が安全で現実的。さらに復号と推論を安全な計算環境に閉じ込めるConfidential AI的な構成も議論された。",
+      "verificationStatus": "partial",
+      "caveat": "説明支援限定は強い国際コンセンサス（LLMは専門家の補助、自律診断には不適。WHO 2024ガイダンス）。一方Confidential Computingは技術的には実証済み（TEEのスループット低下10%以下）だが、医療本番デプロイ事例は2025年時点で萌芽期。",
+      "technologies": ["LLM", "Confidential Computing"], "layer": "ai", "relatedFacts": [],
+      "sources": [ { "label": "LLMs in Health Care (JMIR 2025)", "url": "https://www.jmir.org/2025/1/e71916" } ]
+    },
+    {
+      "id": "C11", "title": "研究利用は同意前提で段階的に仮名化収集",
+      "oneLiner": "診療記録＋LLM対話ログを患者同意後に仮名化して研究・学習基盤化。",
+      "body": "診療記録だけでなく、電子カルテ文脈を参照したLLMとの対話ログや出力も、患者同意後に仮名化して研究・学習データに組み込む構想。カルテ文脈・患者の自然言語・説明結果・評価情報が連動した高品質な学習基盤を作れる点が強み。実装可否は倫理審査・同意設計・法的整理・研究ガバナンスに大きく依存する。",
+      "verificationStatus": "caution",
+      "caveat": "診療記録の仮名化研究利用は次世代医療基盤法（2024年4月施行、2025年に理研が初認定）で裏付けあり。ただし同法はオプトアウト方式であり、「患者同意を前提に」が積極的インフォームドコンセントを意味するなら法制度の実態と齟齬。さらにLLM対話ログが「医療情報」に該当するかは法文上不明確で制度的空白。",
+      "technologies": ["LLM", "仮名化", "研究利用"], "layer": "research", "relatedFacts": [],
+      "sources": [ { "label": "改正次世代医療基盤法 (Deloitte)", "url": "https://www.deloitte.com/jp/ja/Industries/life-sciences/analysis/jisedaiiryou-202404.html" } ]
+    }
+  ],
+  "matrix": [
+    { "id": "F1", "claim": "厚労省GL第6.0版が存在し公的基準", "status": "verified_caution", "consensus": "公式確認", "url": "https://www.mhlw.go.jp/stf/shingi/0000516275_00006.html" },
+    { "id": "F2", "claim": "FHIRはHL7策定の相互運用標準", "status": "verified", "consensus": "強い", "url": "https://www.hl7.org/fhir/overview.html" },
+    { "id": "F3", "claim": "HSMはNIST定義の鍵保護物理デバイス", "status": "verified", "consensus": "強い", "url": "https://csrc.nist.gov/glossary/term/hardware_security_module_hsm" },
+    { "id": "C1", "claim": "BCは同意・権限・監査の記録層", "status": "verified", "consensus": "強い（学術＋規制）", "url": "https://www.omfif.org/2025/06/european-data-protection-board-puts-blockchain-at-a-gdpr-crossroads/" },
+    { "id": "C2", "claim": "暗号化オフチェーン＋CID参照", "status": "verified", "consensus": "強い（支配的）", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12494854/" },
+    { "id": "C3", "claim": "患者・病院ハイブリッド鍵管理", "status": "verified", "consensus": "高い", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6996742/" },
+    { "id": "C4", "claim": "MPC・閾値署名・PREで分散管理", "status": "verified", "consensus": "研究高/実用中", "url": "https://link.springer.com/article/10.1186/s13635-025-00200-y" },
+    { "id": "C5", "claim": "病院側鍵管理にHSM", "status": "verified", "consensus": "非常に高い（業界標準）", "url": "https://www.accountablehq.com/post/healthcare-hsm-deployment-guide-architecture-hipaa-compliance-and-best-practices" },
+    { "id": "C6", "claim": "FHIRブリッジ型導入", "status": "verified", "consensus": "強い（三方向）", "url": "https://pubmed.ncbi.nlm.nih.gov/40588950/" },
+    { "id": "C7", "claim": "台帳分散とデータ冗長化を分離", "status": "verified", "consensus": "高い（暗黙の標準）", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9183171/" },
+    { "id": "C8", "claim": "他院共有はGW経由・クラスター不参加", "status": "partial", "consensus": "中", "url": "https://www.sciencedirect.com/science/article/abs/pii/S0010482525008133" },
+    { "id": "C9", "claim": "価値は標準化された高品質データ活用", "status": "verified", "consensus": "強い（hype批判と一致）", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12071524/" },
+    { "id": "C10", "claim": "LLMは説明支援に限定＋CC", "status": "partial", "consensus": "説明支援=強/CC=萌芽期", "url": "https://www.jmir.org/2025/1/e71916" },
+    { "id": "C11", "claim": "研究利用は同意前提で仮名化収集", "status": "caution", "consensus": "法制度に齟齬・空白", "url": "https://www.deloitte.com/jp/ja/Industries/life-sciences/analysis/jisedaiiryou-202404.html" }
+  ],
+  "finalConclusion": {
+    "summary": "電子カルテのデータ管理においてブロックチェーンを主記録媒体として使うのではなく、患者同意・アクセス制御・監査証跡を記録する台帳層として用い、診療記録本体は暗号化してオフチェーンに保持するのが最も現実的である。日本の運用実態を踏まえ、患者を権限主体としつつ病院や第三者バックアップが支援できるハイブリッド型鍵管理を採用し、病院側ではHSMで鍵保護を行う。導入は既存EHRとFHIRで接続するブリッジ型が現実的で、真の価値は研究利用や患者向け説明支援LLMまで見据えた高品質で標準化されたデータ基盤を作る点にある。",
+    "assessment": "この最終結論は2024–2026の学術・業界・規制動向に照らして全体として妥当性が高く、近年の批判的コンセンサスとも整合的。外部事実と設計結論を峻別し、未検証部分を明示する姿勢も適切と評価できる。",
+    "keyWarnings": [
+      "F1: 厚労省ガイドラインは第6.1版が目前（2026年5月公表予定）→ 近く記述の更新が必要",
+      "C8: 「クラスター不参加」構成を医療文脈で論じた学術裏付けが弱い（技術的妥当性はある）",
+      "C11: 次世代医療基盤法はオプトアウト方式で「患者同意前提」と齟齬の可能性。LLM対話ログの研究利用は制度的空白"
+    ]
+  }
+}
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var DATA;
+  try { DATA = JSON.parse(document.getElementById('app-data').textContent); }
+  catch(e){ document.body.insertAdjacentHTML('afterbegin','<p style="color:red;padding:1rem">データ読み込みエラー: '+e.message+'</p>'); return; }
+
+  var TERMS = {}; DATA.terms.forEach(function(t){ TERMS[t.abbr]=t; });
+  var BADGE = {
+    verified:{label:'検証済',icon:'✓',cls:'verified'},
+    verified_caution:{label:'裏付けあり・要注意',icon:'✓!',cls:'verified_caution'},
+    partial:{label:'部分的裏付け',icon:'△',cls:'partial'},
+    caution:{label:'要注意',icon:'!',cls:'caution'},
+    unverifiable:{label:'検証困難',icon:'?',cls:'unverifiable'},
+    pending:{label:'未検証',icon:'⋯',cls:'pending'}
+  };
+  var KIND = { external_fact:'外部事実', conclusion:'設計結論' };
+
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
+  function termize(text){
+    return text.replace(/\b(EHR|FHIR|HSM|IPFS|CID|MPC|LLM)\b/g, function(m){
+      var t = TERMS[m]; if(!t) return m;
+      return '<abbr class="term" tabindex="0" title="'+attr(t.full+' — '+t.ja)+'">'+m+'</abbr>';
+    });
+  }
+  function badge(status){
+    var b = BADGE[status]||BADGE.pending;
+    return '<span class="badge badge-'+b.cls+'"><span aria-hidden="true">'+b.icon+'</span> '+b.label+'</span>';
+  }
+
+  function cardHTML(item, kind){
+    var techs = (item.technologies||[]).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
+    var srcs = (item.sources||[]).map(function(s){return '<li><a href="'+attr(s.url)+'" target="_blank" rel="noopener">'+esc(s.label)+'</a></li>';}).join('');
+    var cav = item.caveat ? '<div class="caveat"><strong>⚠ 検証メモ:</strong> '+termize(esc(item.caveat))+'</div>' : '';
+    var rel = (item.relatedFacts&&item.relatedFacts.length) ? '<div class="related">関連: '+item.relatedFacts.map(function(r){return '<a href="#card-'+r+'">'+r+'</a>';}).join('、')+'</div>' : '';
+    return '<article class="card" data-status="'+item.verificationStatus+'" data-kind="'+kind+'" id="card-'+item.id+'">'
+      +'<div class="card-head">'+badge(item.verificationStatus)+'<span class="card-id">'+item.id+'</span><span class="card-kind">'+KIND[kind]+'</span></div>'
+      +'<h3 class="card-title">'+termize(esc(item.title))+'</h3>'
+      +'<p class="card-oneliner">'+termize(esc(item.oneLiner))+'</p>'
+      +'<details><summary>詳細・根拠を見る</summary>'
+      +'<div class="card-body">'+termize(esc(item.body))+'</div>'+cav+rel
+      +(techs?'<div class="tags">'+techs+'</div>':'')
+      +(srcs?'<div class="sources"><strong>検証の主な出典:</strong><ul>'+srcs+'</ul></div>':'')
+      +'</details></article>';
+  }
+
+  // render cards
+  document.getElementById('facts-grid').innerHTML = DATA.externalFacts.map(function(f){return cardHTML(f,'external_fact');}).join('');
+  document.getElementById('concl-grid').innerHTML = DATA.conclusions.map(function(c){return cardHTML(c,'conclusion');}).join('');
+
+  // matrix
+  document.getElementById('matrix-body').innerHTML = DATA.matrix.map(function(m){
+    return '<tr data-status="'+m.status+'"><td><a href="#card-'+m.id+'">'+m.id+'</a></td><td>'+esc(m.claim)+'</td><td>'+badge(m.status)+'</td><td>'+esc(m.consensus||'—')+'</td><td><a href="'+attr(m.url)+'" target="_blank" rel="noopener">出典</a></td></tr>';
+  }).join('');
+
+  // final
+  var fc = DATA.finalConclusion;
+  var warns = (fc.keyWarnings||[]).map(function(w){return '<li>'+termize(esc(w))+'</li>';}).join('');
+  document.getElementById('final-box').innerHTML =
+    '<p>'+termize(esc(fc.summary))+'</p>'
+    +'<p style="color:var(--text-sub)"><strong>検証総括:</strong> '+termize(esc(fc.assessment))+'</p>'
+    +'<div class="keywarn"><strong>⚠ 特に注意すべき3点:</strong><ul>'+warns+'</ul></div>';
+
+  // status filter UI (only statuses present in data)
+  var present = {};
+  DATA.externalFacts.concat(DATA.conclusions).forEach(function(i){ present[i.verificationStatus]=true; });
+  var order = ['verified','verified_caution','partial','caution','unverifiable','pending'];
+  var fsHtml='', lgHtml='';
+  order.forEach(function(s){
+    if(!present[s]) return;
+    var b=BADGE[s];
+    fsHtml += '<label class="chk"><input type="checkbox" class="f-status" value="'+s+'" checked> '+b.icon+' '+b.label+'</label>';
+    lgHtml += badge(s);
+  });
+  document.getElementById('filter-status').insertAdjacentHTML('beforeend', fsHtml);
+  document.querySelector('#legend-status .grp').insertAdjacentHTML('beforeend', lgHtml);
+
+  function applyFilters(){
+    var st = [].slice.call(document.querySelectorAll('.f-status:checked')).map(function(e){return e.value;});
+    var kd = [].slice.call(document.querySelectorAll('.f-kind:checked')).map(function(e){return e.value;});
+    var n=0;
+    [].slice.call(document.querySelectorAll('#facts-grid .card, #concl-grid .card')).forEach(function(c){
+      var show = st.indexOf(c.dataset.status)>=0 && kd.indexOf(c.dataset.kind)>=0;
+      c.hidden = !show; if(show) n++;
+    });
+    document.getElementById('result-count').textContent = n+' 件を表示中';
+  }
+  [].slice.call(document.querySelectorAll('.f-status, .f-kind')).forEach(function(e){ e.addEventListener('change', applyFilters); });
+  applyFilters();
+
+  // theme toggle
+  var tbtn = document.getElementById('theme-toggle');
+  tbtn.addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var next = cur ? (cur==='dark'?'light':'dark') : (prefersDark?'light':'dark');
+    document.documentElement.setAttribute('data-theme', next);
+    tbtn.textContent = next==='dark' ? '☀ ライト' : '🌙 ダーク';
+  });
+})();
+</script>
+</body>
+</html>
