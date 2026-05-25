@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>電子カルテ×ブロックチェーン — 設計結論と検証ステータス</title>
+<script>(function(){var d=document.documentElement;if(!d.getAttribute('data-theme')){d.setAttribute('data-theme',(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');}})();</script>
 <style>
 :root{
   --bg:#f7f8fa; --surface:#ffffff; --surface-2:#f0f2f5; --border:#dde1e7;
@@ -16,29 +17,14 @@
   --shadow:0 1px 3px rgba(20,30,50,.08),0 1px 2px rgba(20,30,50,.04);
   --maxw:980px;
 }
-@media (prefers-color-scheme:dark){
-  :root{
-    --bg:#0f1320; --surface:#171c2b; --surface-2:#1f2638; --border:#2c3650;
-    --text:#e6e9f0; --text-sub:#9aa6bd; --link:#6ea8ff;
-    --c-verified:#46c46a; --c-verified_caution:#d9b14b; --c-partial:#e09b4a;
-    --c-caution:#f08a4a; --c-unverifiable:#f06a6a; --c-pending:#9aa6bd;
-    --onchain:#16243f; --onchain-bd:#2f4a78; --offchain:#13301f; --offchain-bd:#2c6a45;
-    --shadow:0 1px 3px rgba(0,0,0,.4);
-  }
-}
-:root[data-theme="light"]{
-  --bg:#f7f8fa; --surface:#ffffff; --surface-2:#f0f2f5; --border:#dde1e7;
-  --text:#1c2330; --text-sub:#5b6677; --link:#0a5cc4;
-  --c-verified:#1a7f37; --c-verified_caution:#9a7000; --c-partial:#b45309;
-  --c-caution:#c2410c; --c-unverifiable:#b91c1c; --c-pending:#5b6677;
-  --onchain:#e7f0ff; --onchain-bd:#9dbcf0; --offchain:#e7f7ee; --offchain-bd:#93cfae;
-}
+/* ダーク値は data-theme="dark" の一箇所に集約（初期テーマは <head> のスクリプトがOS設定から設定） */
 :root[data-theme="dark"]{
   --bg:#0f1320; --surface:#171c2b; --surface-2:#1f2638; --border:#2c3650;
   --text:#e6e9f0; --text-sub:#9aa6bd; --link:#6ea8ff;
   --c-verified:#46c46a; --c-verified_caution:#d9b14b; --c-partial:#e09b4a;
   --c-caution:#f08a4a; --c-unverifiable:#f06a6a; --c-pending:#9aa6bd;
   --onchain:#16243f; --onchain-bd:#2f4a78; --offchain:#13301f; --offchain-bd:#2c6a45;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -120,7 +106,9 @@ summary:hover{text-decoration:underline}
 
 /* term tooltip & glossary */
 .term,.term-demo{text-decoration:underline dotted; text-underline-offset:3px; cursor:help; color:inherit}
-.term:hover,.term:focus{color:var(--link); outline:none}
+.term:hover{color:var(--link)}
+.term:focus-visible{outline:2px solid var(--link); outline-offset:2px; border-radius:3px; color:var(--link)}
+.btn:focus-visible,.toc a:focus-visible,.chk:focus-within,summary:focus-visible{outline:2px solid var(--link); outline-offset:2px}
 #svgtip strong{color:var(--bg)}
 .tip-full{font-weight:400; opacity:.82; font-size:.9em}
 .glossary{display:grid; gap:1rem}
@@ -319,7 +307,7 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     <p class="sec-desc">外部事実3点と設計結論11点の検証判定・根拠・出典の総覧です。</p>
     <div class="matrix-wrap">
       <table class="matrix">
-        <thead><tr><th>ID</th><th>主張の要約</th><th>判定</th><th>コンセンサス</th><th>出典</th></tr></thead>
+        <thead><tr><th scope="col">ID</th><th scope="col">主張の要約</th><th scope="col">判定</th><th scope="col">コンセンサス</th><th scope="col">出典</th></tr></thead>
         <tbody id="matrix-body"></tbody>
       </table>
     </div>
@@ -564,7 +552,8 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
   catch(e){ document.body.insertAdjacentHTML('afterbegin','<p style="color:red;padding:1rem">データ読み込みエラー: '+e.message+'</p>'); return; }
 
   var TERMS = {}; DATA.terms.forEach(function(t){ TERMS[t.term]=t; });
-  var TERM_RE = new RegExp('(' + Object.keys(TERMS).sort(function(a,b){ return b.length - a.length; }).join('|') + ')', 'g');
+  function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  var TERM_RE = new RegExp('(' + Object.keys(TERMS).sort(function(a,b){ return b.length - a.length; }).map(escRe).join('|') + ')', 'g');
   var BADGE = {
     verified:{label:'検証済',icon:'✓',cls:'verified'},
     verified_caution:{label:'裏付けあり・要注意',icon:'✓!',cls:'verified_caution'},
@@ -650,19 +639,22 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
       var show = st.indexOf(c.dataset.status)>=0 && kd.indexOf(c.dataset.kind)>=0;
       c.hidden = !show; if(show) n++;
     });
-    document.getElementById('result-count').textContent = n+' 件を表示中';
+    document.getElementById('result-count').textContent = n>0 ? n+' 件を表示中' : '条件に一致するカードがありません（フィルタを見直してください）';
   }
   [].slice.call(document.querySelectorAll('.f-status, .f-kind')).forEach(function(e){ e.addEventListener('change', applyFilters); });
   applyFilters();
 
   // theme toggle
   var tbtn = document.getElementById('theme-toggle');
+  function applyThemeLabel(t){
+    tbtn.innerHTML = '<span aria-hidden="true">'+(t==='dark'?'☀':'🌙')+'</span> '+(t==='dark'?'ライト':'ダーク');
+    tbtn.setAttribute('aria-label', (t==='dark'?'ライト':'ダーク')+'テーマに切り替え');
+  }
+  applyThemeLabel(document.documentElement.getAttribute('data-theme')||'light');
   tbtn.addEventListener('click', function(){
-    var cur = document.documentElement.getAttribute('data-theme');
-    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var next = cur ? (cur==='dark'?'light':'dark') : (prefersDark?'light':'dark');
+    var next = document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    tbtn.textContent = next==='dark' ? '☀ ライト' : '🌙 ダーク';
+    applyThemeLabel(next);
   });
 
   // glossary render
@@ -694,35 +686,37 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     if(py < m) py = m; if(px < m) px = m;
     tip.style.left = px + 'px'; tip.style.top = py + 'px';
   }
-  function showTip(html, x, y){ tip.innerHTML = html; tip.classList.add('show'); placeTip(x, y); }
-  function hideTip(){ tip.classList.remove('show'); }
-  // figure elements (static)
+  function reveal(){ tip.classList.add('show'); tip.removeAttribute('aria-hidden'); }
+  function showHTML(html, x, y){ tip.innerHTML = html; reveal(); placeTip(x, y); }
+  function showText(text, x, y){ tip.textContent = text; reveal(); placeTip(x, y); }
+  function hideTip(){ tip.classList.remove('show'); tip.setAttribute('aria-hidden', 'true'); }
+  // single mousemove handler: follow cursor whenever a tooltip is visible
+  document.body.addEventListener('mousemove', function(e){ if(tip.classList.contains('show')) placeTip(e.clientX, e.clientY); });
+  // figure elements (static): plain-text tooltip, role=button (interactive)
   [].slice.call(document.querySelectorAll('[data-tip]')).forEach(function(el){
-    el.setAttribute('tabindex','0'); el.setAttribute('role','img'); el.setAttribute('aria-label', el.getAttribute('data-tip'));
-    el.addEventListener('mouseenter', function(e){ showTip(esc(el.getAttribute('data-tip')), e.clientX, e.clientY); });
-    el.addEventListener('mousemove', function(e){ if(tip.classList.contains('show')) placeTip(e.clientX, e.clientY); });
+    el.setAttribute('tabindex','0'); el.setAttribute('role','button'); el.setAttribute('aria-label', el.getAttribute('data-tip'));
+    el.addEventListener('mouseenter', function(e){ showText(el.getAttribute('data-tip'), e.clientX, e.clientY); });
     el.addEventListener('mouseleave', hideTip);
-    el.addEventListener('focus', function(){ var r = el.getBoundingClientRect(); showTip(esc(el.getAttribute('data-tip')), r.left + r.width/2, r.top + r.height/2); });
+    el.addEventListener('focus', function(){ var r = el.getBoundingClientRect(); showText(el.getAttribute('data-tip'), r.left + r.width/2, r.top + r.height/2); });
     el.addEventListener('blur', hideTip);
   });
-  // glossary terms (delegated, for dynamically rendered cards)
+  // glossary terms (delegated): rich HTML tooltip
   function termTipHTML(key){
     var t = TERMS[key]; if(!t) return esc(key);
     return '<strong>'+esc(t.term)+(t.full?' <span class="tip-full">'+esc(t.full)+'</span>':'')+'</strong><br>'+esc(t.desc);
   }
   document.body.addEventListener('mouseover', function(e){
     var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
-    showTip(termTipHTML(el.getAttribute('data-term')), e.clientX, e.clientY);
-  });
-  document.body.addEventListener('mousemove', function(e){
-    if(tip.classList.contains('show') && e.target.closest && e.target.closest('.term')) placeTip(e.clientX, e.clientY);
+    showHTML(termTipHTML(el.getAttribute('data-term')), e.clientX, e.clientY);
   });
   document.body.addEventListener('mouseout', function(e){
-    if(e.target.closest && e.target.closest('.term')) hideTip();
+    var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
+    if(e.relatedTarget && el.contains(e.relatedTarget)) return;
+    hideTip();
   });
   document.body.addEventListener('focusin', function(e){
     var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
-    var r = el.getBoundingClientRect(); showTip(termTipHTML(el.getAttribute('data-term')), r.left + r.width/2, r.top + r.height/2);
+    var r = el.getBoundingClientRect(); showHTML(termTipHTML(el.getAttribute('data-term')), r.left + r.width/2, r.top + r.height/2);
   });
   document.body.addEventListener('focusout', function(e){
     if(e.target.closest && e.target.closest('.term')) hideTip();
