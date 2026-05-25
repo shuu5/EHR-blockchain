@@ -140,6 +140,11 @@ table.matrix tr:last-child td{border-bottom:none}
 .svg-ts{fill:var(--text-sub); font-size:11px; font-family:inherit}
 .svg-line{stroke:var(--text-sub); stroke-width:1.5; fill:none}
 .svg-dash{stroke:var(--text-sub); stroke-width:1.5; fill:none; stroke-dasharray:5 4}
+.diagram svg text{pointer-events:none}
+rect.tipnode{cursor:help; transition:stroke .1s}
+rect.tipnode:hover,rect.tipnode:focus{stroke:var(--link); stroke-width:2.5; outline:none}
+#svgtip{position:fixed; z-index:60; max-width:300px; background:var(--text); color:var(--bg); padding:.5rem .7rem; border-radius:8px; font-size:.78rem; line-height:1.55; box-shadow:0 6px 18px rgba(0,0,0,.3); pointer-events:none; opacity:0; transition:opacity .12s}
+#svgtip.show{opacity:1}
 
 /* final */
 .final{background:linear-gradient(135deg,var(--surface),var(--surface-2)); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.3rem; box-shadow:var(--shadow)}
@@ -214,26 +219,26 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
       <svg viewBox="0 0 720 300" role="img" aria-labelledby="d1t d1d">
         <title id="d1t">2層分離アーキテクチャ図</title>
         <desc id="d1d">上段のオフチェーン層に暗号化した診療記録の実データ（IPFS/病院サーバー）とCIDを置き、下段のオンチェーン層には同意履歴・アクセス権・監査証跡・CID記録のみを置く。実データはブロックチェーンに載らない。</desc>
-        <rect class="svg-off" x="10" y="15" width="700" height="120" rx="10"/>
+        <rect class="svg-off tipnode" x="10" y="15" width="700" height="120" rx="10" data-tip="オフチェーン層：実データ（診療記録）を保管する領域。大容量で秘匿性が高い情報はブロックチェーンに載せない。"/>
         <text class="svg-t" x="26" y="40" font-weight="700">オフチェーン層 — 実データ（大容量・秘匿）</text>
-        <rect class="svg-box" x="34" y="56" width="190" height="60" rx="8"/>
+        <rect class="svg-box tipnode" x="34" y="56" width="190" height="60" rx="8" data-tip="診療記録は暗号化して保存。復号鍵を持つ者だけが内容を閲覧できる。"/>
         <text class="svg-t" x="129" y="81" text-anchor="middle">暗号化された</text>
         <text class="svg-t" x="129" y="100" text-anchor="middle">診療記録</text>
-        <rect class="svg-box" x="264" y="56" width="190" height="60" rx="8"/>
+        <rect class="svg-box tipnode" x="264" y="56" width="190" height="60" rx="8" data-tip="IPFS（分散ファイルシステム）や病院サーバーで冗長保存。ただしピン留めしないとデータが消える点に注意。"/>
         <text class="svg-t" x="359" y="81" text-anchor="middle">IPFS / 病院サーバー</text>
         <text class="svg-ts" x="359" y="100" text-anchor="middle">分散保存・冗長化</text>
-        <rect class="svg-box" x="494" y="56" width="190" height="60" rx="8"/>
+        <rect class="svg-box tipnode" x="494" y="56" width="190" height="60" rx="8" data-tip="CID（Content Identifier）：データ内容から導かれる一意の参照子。実データの所在を指すポインタ。"/>
         <text class="svg-t" x="589" y="81" text-anchor="middle">CID（参照子）</text>
         <text class="svg-ts" x="589" y="100" text-anchor="middle">データの所在を指す</text>
-        <rect class="svg-on" x="10" y="165" width="700" height="120" rx="10"/>
+        <rect class="svg-on tipnode" x="10" y="165" width="700" height="120" rx="10" data-tip="オンチェーン層：改ざん耐性を持つ台帳。軽量なメタ情報だけを記録し、実データ本体は置かない。"/>
         <text class="svg-t" x="26" y="190" font-weight="700">オンチェーン層 — 台帳（改ざん耐性）</text>
-        <rect class="svg-box" x="34" y="208" width="150" height="58" rx="8"/>
+        <rect class="svg-box tipnode" x="34" y="208" width="150" height="58" rx="8" data-tip="患者が誰に何を許可したかという同意の履歴を記録。"/>
         <text class="svg-t" x="109" y="242" text-anchor="middle">同意履歴</text>
-        <rect class="svg-box" x="204" y="208" width="150" height="58" rx="8"/>
+        <rect class="svg-box tipnode" x="204" y="208" width="150" height="58" rx="8" data-tip="誰がどのデータにアクセスできるかという権限情報。"/>
         <text class="svg-t" x="279" y="242" text-anchor="middle">アクセス権</text>
-        <rect class="svg-box" x="374" y="208" width="150" height="58" rx="8"/>
+        <rect class="svg-box tipnode" x="374" y="208" width="150" height="58" rx="8" data-tip="いつ誰がアクセスしたかの改ざん不能なログ（監査証跡）。"/>
         <text class="svg-t" x="449" y="242" text-anchor="middle">監査証跡</text>
-        <rect class="svg-box" x="544" y="208" width="140" height="58" rx="8"/>
+        <rect class="svg-box tipnode" x="544" y="208" width="140" height="58" rx="8" data-tip="実データの参照子CIDのみを台帳に記録する（実データ本体は載せない）。"/>
         <text class="svg-t" x="614" y="242" text-anchor="middle">CID記録</text>
         <path class="svg-dash" d="M589,118 L614,206" marker-end="url(#arrow)"/>
         <text class="svg-ts" x="498" y="155">↓ CIDと権限のみ記録</text>
@@ -246,26 +251,26 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
       <svg viewBox="0 0 720 320" role="img" aria-labelledby="d2t d2d">
         <title id="d2t">ハイブリッド鍵管理フロー図</title>
         <desc id="d2d">患者レーンで同意・権限付与、病院レーンでHSMが鍵を保護し署名・復号のみ実行、台帳レーンで権限と同意を記録する。秘密鍵はMPC・閾値署名で患者・病院・第三者に分散される。</desc>
-        <rect class="svg-box" x="10" y="15" width="225" height="230" rx="10"/>
-        <rect class="svg-box" x="247" y="15" width="225" height="230" rx="10"/>
-        <rect class="svg-box" x="484" y="15" width="226" height="230" rx="10"/>
+        <rect class="svg-box tipnode" x="10" y="15" width="225" height="230" rx="10" data-tip="患者：権限の主体。誰に何のデータを許可するかを決める。"/>
+        <rect class="svg-box tipnode" x="247" y="15" width="225" height="230" rx="10" data-tip="病院／HSM：鍵を物理デバイスに閉じ込め、署名・復号の処理だけを担う。"/>
+        <rect class="svg-box tipnode" x="484" y="15" width="226" height="230" rx="10" data-tip="ブロックチェーン台帳：付与された権限と同意を改ざん耐性をもって記録する。"/>
         <text class="svg-t" x="122" y="40" text-anchor="middle" font-weight="700">患者（権限主体）</text>
         <text class="svg-t" x="359" y="40" text-anchor="middle" font-weight="700">病院 / HSM</text>
         <text class="svg-t" x="597" y="40" text-anchor="middle" font-weight="700">台帳（ブロックチェーン）</text>
-        <rect class="svg-on" x="32" y="70" width="180" height="60" rx="8"/>
+        <rect class="svg-on tipnode" x="32" y="70" width="180" height="60" rx="8" data-tip="患者が同意し、アクセス権を付与する操作。"/>
         <text class="svg-t" x="122" y="95" text-anchor="middle">① 同意・</text>
         <text class="svg-t" x="122" y="114" text-anchor="middle">権限付与</text>
-        <rect class="svg-on" x="269" y="70" width="180" height="60" rx="8"/>
+        <rect class="svg-on tipnode" x="269" y="70" width="180" height="60" rx="8" data-tip="HSM（耐タンパの物理デバイス）が鍵を内部で保護し、処理のみ実行する。"/>
         <text class="svg-t" x="359" y="95" text-anchor="middle">② HSMが鍵を保護</text>
         <text class="svg-ts" x="359" y="114" text-anchor="middle">署名・復号のみ実行</text>
-        <rect class="svg-off" x="269" y="150" width="180" height="52" rx="8"/>
+        <rect class="svg-off tipnode" x="269" y="150" width="180" height="52" rx="8" data-tip="鍵そのものは外部に取り出せないため、漏洩リスクを大幅に下げられる。"/>
         <text class="svg-ts" x="359" y="180" text-anchor="middle">秘密鍵はHSMから出ない</text>
-        <rect class="svg-on" x="506" y="70" width="182" height="60" rx="8"/>
+        <rect class="svg-on tipnode" x="506" y="70" width="182" height="60" rx="8" data-tip="付与された権限・同意を台帳に記録する。"/>
         <text class="svg-t" x="597" y="95" text-anchor="middle">③ 権限・同意を</text>
         <text class="svg-t" x="597" y="114" text-anchor="middle">記録</text>
         <path class="svg-line" d="M214,100 L267,100" marker-end="url(#arrow)"/>
         <path class="svg-line" d="M451,100 L504,100" marker-end="url(#arrow)"/>
-        <rect class="svg-box" x="32" y="262" width="656" height="44" rx="8"/>
+        <rect class="svg-box tipnode" x="32" y="262" width="656" height="44" rx="8" data-tip="MPC・閾値署名・プロキシ再暗号化で鍵を分散。単一主体が完全な鍵を持たない設計。"/>
         <text class="svg-ts" x="359" y="289" text-anchor="middle">MPC・閾値署名・プロキシ再暗号化で鍵を分散管理（患者・病院・第三者バックアップ）— 単一主体が完全な鍵を持たない</text>
       </svg>
     </div>
@@ -277,10 +282,10 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
         <title id="d3t">他院共有シーケンス図</title>
         <desc id="d3d">患者の同意のもと、提供元病院がゲートウェイ経由で暗号化データを提供先病院に渡し、別チャネルでプロキシ再暗号化により復号権限を付与する。提供先はクラスターに参加しなくてよい。</desc>
         <g text-anchor="middle">
-          <rect class="svg-box" x="40" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="100" y="41">患者</text>
-          <rect class="svg-box" x="210" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="270" y="41">提供元病院A</text>
-          <rect class="svg-box" x="390" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="450" y="41">ゲートウェイ</text>
-          <rect class="svg-box" x="570" y="15" width="120" height="42" rx="8"/><text class="svg-t" x="630" y="41">提供先病院B</text>
+          <rect class="svg-box tipnode" x="40" y="15" width="120" height="42" rx="8" data-tip="情報提供に同意を与える主体。"/><text class="svg-t" x="100" y="41">患者</text>
+          <rect class="svg-box tipnode" x="210" y="15" width="120" height="42" rx="8" data-tip="データを保有し提供する側の病院。"/><text class="svg-t" x="270" y="41">提供元病院A</text>
+          <rect class="svg-box tipnode" x="390" y="15" width="120" height="42" rx="8" data-tip="暗号化データの受け渡しを仲介する。内容は見られない。"/><text class="svg-t" x="450" y="41">ゲートウェイ</text>
+          <rect class="svg-box tipnode" x="570" y="15" width="120" height="42" rx="8" data-tip="データを受け取る側。IPFSクラスターに常時参加しなくてよい。"/><text class="svg-t" x="630" y="41">提供先病院B</text>
         </g>
         <line class="svg-dash" x1="100" y1="57" x2="100" y2="315"/>
         <line class="svg-dash" x1="270" y1="57" x2="270" y2="315"/>
@@ -294,7 +299,7 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
         <text class="svg-ts" x="540" y="178" text-anchor="middle">③ 暗号化データ取得（クラスター不参加でOK）</text>
         <path class="svg-line" d="M270,240 L630,240" marker-end="url(#arrow)"/>
         <text class="svg-ts" x="450" y="233" text-anchor="middle">④ 別チャネルで復号権限付与（プロキシ再暗号化）</text>
-        <rect class="svg-on" x="572" y="262" width="116" height="44" rx="8"/>
+        <rect class="svg-on tipnode" x="572" y="262" width="116" height="44" rx="8" data-tip="付与された権限で復号し、必要なときだけ内容を参照する。"/>
         <text class="svg-ts" x="630" y="289" text-anchor="middle">⑤ 復号して参照</text>
       </svg>
     </div>
@@ -323,6 +328,8 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     <p>原典: <code>source/emr_blockchain_conclusion_verified.md</code>。本サイトはオフラインで動作する単一HTMLです。検証の詳細は <code>verification/research-report.md</code> を参照。</p>
   </div>
 </footer>
+
+<div id="svgtip" role="tooltip" aria-hidden="true"></div>
 
 <svg id="svg-defs" aria-hidden="true" width="0" height="0" style="position:absolute">
   <defs>
@@ -608,6 +615,30 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     document.documentElement.setAttribute('data-theme', next);
     tbtn.textContent = next==='dark' ? '☀ ライト' : '🌙 ダーク';
   });
+
+  // svg diagram tooltips
+  var svgtip = document.getElementById('svgtip');
+  function placeTip(x, y){
+    var w = svgtip.offsetWidth, h = svgtip.offsetHeight, m = 12;
+    var px = x + 14, py = y + 14;
+    if(px + w > window.innerWidth - m) px = window.innerWidth - w - m;
+    if(py + h > window.innerHeight - m) py = y - h - 14;
+    if(py < m) py = m;
+    svgtip.style.left = px + 'px'; svgtip.style.top = py + 'px';
+  }
+  function showTip(el, x, y){ svgtip.textContent = el.getAttribute('data-tip'); svgtip.classList.add('show'); placeTip(x, y); }
+  function hideTip(){ svgtip.classList.remove('show'); }
+  [].slice.call(document.querySelectorAll('[data-tip]')).forEach(function(el){
+    el.setAttribute('tabindex','0');
+    el.setAttribute('role','img');
+    el.setAttribute('aria-label', el.getAttribute('data-tip'));
+    el.addEventListener('mouseenter', function(e){ showTip(el, e.clientX, e.clientY); });
+    el.addEventListener('mousemove', function(e){ if(svgtip.classList.contains('show')) placeTip(e.clientX, e.clientY); });
+    el.addEventListener('mouseleave', hideTip);
+    el.addEventListener('focus', function(){ var r = el.getBoundingClientRect(); showTip(el, r.left + r.width/2, r.top + r.height/2); });
+    el.addEventListener('blur', hideTip);
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hideTip(); });
 })();
 </script>
 </body>
