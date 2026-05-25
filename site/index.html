@@ -216,8 +216,7 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     <div class="diagram">
       <h3>図1: 2層分離アーキテクチャ（C1・C2・C7）</h3>
       <p class="cap">実データは暗号化してオフチェーンに保存し、ブロックチェーンには参照子CIDと権限・同意・監査のみを記録する。</p>
-      <svg viewBox="0 0 720 300" role="img" aria-labelledby="d1t d1d">
-        <title id="d1t">2層分離アーキテクチャ図</title>
+      <svg viewBox="0 0 720 300" role="img" aria-labelledby="d1d">
         <desc id="d1d">上段のオフチェーン層に暗号化した診療記録の実データ（IPFS/病院サーバー）とCIDを置き、下段のオンチェーン層には同意履歴・アクセス権・監査証跡・CID記録のみを置く。実データはブロックチェーンに載らない。</desc>
         <rect class="svg-off tipnode" x="10" y="15" width="700" height="120" rx="10" data-tip="オフチェーン層：実データ（診療記録）を保管する領域。大容量で秘匿性が高い情報はブロックチェーンに載せない。"/>
         <text class="svg-t" x="26" y="40" font-weight="700">オフチェーン層 — 実データ（大容量・秘匿）</text>
@@ -248,8 +247,7 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     <div class="diagram">
       <h3>図2: ハイブリッド鍵管理フロー（C3・C4・C5）</h3>
       <p class="cap">患者が権限主体。病院はHSMに鍵を閉じ込め署名・復号処理のみ実行し、秘密鍵はMPC・閾値署名で分散する（一箇所に完全な鍵を置かない）。</p>
-      <svg viewBox="0 0 720 320" role="img" aria-labelledby="d2t d2d">
-        <title id="d2t">ハイブリッド鍵管理フロー図</title>
+      <svg viewBox="0 0 720 320" role="img" aria-labelledby="d2d">
         <desc id="d2d">患者レーンで同意・権限付与、病院レーンでHSMが鍵を保護し署名・復号のみ実行、台帳レーンで権限と同意を記録する。秘密鍵はMPC・閾値署名で患者・病院・第三者に分散される。</desc>
         <rect class="svg-box tipnode" x="10" y="15" width="225" height="230" rx="10" data-tip="患者：権限の主体。誰に何のデータを許可するかを決める。"/>
         <rect class="svg-box tipnode" x="247" y="15" width="225" height="230" rx="10" data-tip="病院／HSM：鍵を物理デバイスに閉じ込め、署名・復号の処理だけを担う。"/>
@@ -278,8 +276,7 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     <div class="diagram">
       <h3>図3: 他院への診療情報提供フロー（C8）</h3>
       <p class="cap">提供先を常時IPFSクラスターに参加させず、ゲートウェイ経由で暗号化データを取得し、別チャネルでプロキシ再暗号化により復号権限を付与する。</p>
-      <svg viewBox="0 0 720 330" role="img" aria-labelledby="d3t d3d">
-        <title id="d3t">他院共有シーケンス図</title>
+      <svg viewBox="0 0 720 330" role="img" aria-labelledby="d3d">
         <desc id="d3d">患者の同意のもと、提供元病院がゲートウェイ経由で暗号化データを提供先病院に渡し、別チャネルでプロキシ再暗号化により復号権限を付与する。提供先はクラスターに参加しなくてよい。</desc>
         <g text-anchor="middle">
           <rect class="svg-box tipnode" x="40" y="15" width="120" height="42" rx="8" data-tip="情報提供に同意を与える主体。"/><text class="svg-t" x="100" y="41">患者</text>
