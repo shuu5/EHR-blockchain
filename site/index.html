@@ -118,8 +118,19 @@ summary:hover{text-decoration:underline}
 .badge-unverifiable{color:var(--c-unverifiable); background:color-mix(in srgb,var(--c-unverifiable) 13%,transparent)}
 .badge-pending{color:var(--c-pending); background:color-mix(in srgb,var(--c-pending) 13%,transparent)}
 
-/* term tooltip */
-abbr.term{text-decoration:underline dotted; text-underline-offset:3px; cursor:help; border:0}
+/* term tooltip & glossary */
+.term,.term-demo{text-decoration:underline dotted; text-underline-offset:3px; cursor:help; color:inherit}
+.term:hover,.term:focus{color:var(--link); outline:none}
+#svgtip strong{color:var(--bg)}
+.tip-full{font-weight:400; opacity:.82; font-size:.9em}
+.glossary{display:grid; gap:1rem}
+.gloss-cat{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:.8rem 1.1rem; box-shadow:var(--shadow)}
+.gloss-cat h3{margin:.2rem 0 .6rem; font-size:.95rem; color:var(--link); border-bottom:1px solid var(--border); padding-bottom:.3rem}
+.gloss-list{margin:0; display:grid; grid-template-columns:minmax(130px,max-content) 1fr; gap:.5rem .9rem; align-items:baseline}
+.gloss-list dt{font-weight:700; font-size:.88rem}
+.gloss-list dd{margin:0; font-size:.85rem; color:var(--text-sub)}
+.gloss-full{display:block; font-weight:400; font-size:.74rem; color:var(--text-sub)}
+@media(max-width:560px){ .gloss-list{grid-template-columns:1fr; gap:.1rem .5rem} .gloss-list dd{margin-bottom:.5rem} }
 
 /* matrix */
 .matrix-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:12px}
@@ -173,6 +184,7 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
         <a href="#section-diagrams">アーキ図</a>
         <a href="#section-matrix">検証マトリクス</a>
         <a href="#section-final">最終結論</a>
+        <a href="#section-glossary">用語集</a>
       </nav>
     </div>
     <div class="legend">
@@ -317,6 +329,12 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     <h2>最終結論</h2>
     <div class="final" id="final-box"></div>
   </section>
+
+  <section id="section-glossary">
+    <h2>用語集</h2>
+    <p class="sec-desc">本文中の専門用語・略語の一覧です。本文中の<span class="term-demo">下線付きの用語</span>にマウスを乗せる（またはキーボードでフォーカスする）と、ここと同じ説明がツールチップで表示されます。</p>
+    <div id="glossary-body" class="glossary"></div>
+  </section>
 </main>
 
 <footer>
@@ -340,13 +358,39 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
 {
   "meta": { "title": "電子カルテ×ブロックチェーン 結論検証", "lastVerified": "2026-05-25" },
   "terms": [
-    { "abbr": "EHR", "full": "Electronic Health Record", "ja": "電子的に管理される健康記録全般" },
-    { "abbr": "FHIR", "full": "Fast Healthcare Interoperability Resources", "ja": "HL7が策定する医療情報交換標準" },
-    { "abbr": "HSM", "full": "Hardware Security Module", "ja": "暗号鍵を保護し暗号処理を行う物理デバイス" },
-    { "abbr": "IPFS", "full": "InterPlanetary File System", "ja": "オフチェーン保存先として想定された分散ファイルシステム" },
-    { "abbr": "CID", "full": "Content Identifier", "ja": "IPFS上のデータを参照する識別子" },
-    { "abbr": "MPC", "full": "Multi-Party Computation", "ja": "単一主体が完全な秘密鍵を持たない分散計算" },
-    { "abbr": "LLM", "full": "Large Language Model", "ja": "電子カルテ文脈を読める説明支援AIモデル" }
+    { "term": "EHR", "full": "Electronic Health Record", "cat": "standard", "desc": "電子健康記録。患者の診療情報を電子的に管理する仕組み全般。本構想が扱う対象。" },
+    { "term": "FHIR", "full": "Fast Healthcare Interoperability Resources", "cat": "standard", "desc": "HL7が策定する医療情報交換の標準規格。データを「リソース」という部品単位で扱い、JSON/REST等のWeb技術と親和的。" },
+    { "term": "HL7", "full": "Health Level Seven", "cat": "standard", "desc": "医療情報交換の国際標準を策定する団体。FHIRの策定元。" },
+    { "term": "SMART on FHIR", "full": "", "cat": "standard", "desc": "FHIRにOAuth2.0の認可を組み合わせ、医療アプリが安全にデータ連携するための枠組み。" },
+    { "term": "OAuth", "full": "", "cat": "standard", "desc": "パスワードを渡さずに第三者アプリへアクセス権限を委譲する認可の標準プロトコル。" },
+    { "term": "厚労省ガイドライン", "full": "医療情報システムの安全管理に関するガイドライン", "cat": "regulation", "desc": "日本で医療情報システムを運用する際の公的な安全管理基準。最新は第6.0版で、第6.1版が2026年5月公表予定。" },
+    { "term": "GDPR", "full": "General Data Protection Regulation", "cat": "regulation", "desc": "EUの一般データ保護規則。個人データ保護の包括的な法律。" },
+    { "term": "EDPB", "full": "European Data Protection Board", "cat": "regulation", "desc": "GDPRの統一的な解釈・指針を示すEUの機関。" },
+    { "term": "HIPAA", "full": "Health Insurance Portability and Accountability Act", "cat": "regulation", "desc": "米国の医療情報のプライバシー・セキュリティを定める法律。" },
+    { "term": "FIPS 140", "full": "", "cat": "regulation", "desc": "暗号モジュールの安全性に関する米国政府標準。HSMの認定基準として使われる。" },
+    { "term": "次世代医療基盤法", "full": "", "cat": "regulation", "desc": "日本の法律。本人が拒否しない限り（オプトアウト）、医療情報を仮名加工して研究等に活用できる仕組みを定める。" },
+    { "term": "オプトアウト", "full": "", "cat": "regulation", "desc": "本人が拒否の意思を示さない限り同意とみなす方式。事前の積極同意（オプトイン）の対義。" },
+    { "term": "仮名加工医療情報", "full": "", "cat": "regulation", "desc": "他の情報と照合しない限り個人を特定できないよう加工した医療情報。次世代医療基盤法が規定。" },
+    { "term": "インフォームドコンセント", "full": "", "cat": "regulation", "desc": "十分な説明を受けたうえで、本人が自発的に同意すること。" },
+    { "term": "ブロックチェーン", "full": "", "cat": "blockchain", "desc": "取引記録を多数のノードで分散保持し、改ざんを極めて困難にする台帳技術。" },
+    { "term": "オンチェーン", "full": "", "cat": "blockchain", "desc": "ブロックチェーン台帳に直接記録された情報。本構想では権限・同意・監査のみを置く。" },
+    { "term": "オフチェーン", "full": "", "cat": "blockchain", "desc": "ブロックチェーンの外（IPFSや病院サーバー等）に保存されたデータ。実データ本体はこちらに置く。" },
+    { "term": "スマートコントラクト", "full": "", "cat": "blockchain", "desc": "ブロックチェーン上で自動実行されるプログラム。条件に応じて権限付与や記録を自動化する。" },
+    { "term": "監査証跡", "full": "", "cat": "blockchain", "desc": "いつ誰が何をしたかを後から検証できる、改ざん不能な操作ログ。" },
+    { "term": "IPFS", "full": "InterPlanetary File System", "cat": "storage", "desc": "コンテンツ指向の分散ファイルシステム。データをCIDで参照する。" },
+    { "term": "CID", "full": "Content Identifier", "cat": "storage", "desc": "データの内容から計算される一意の識別子。内容が変わればCIDも変わる。" },
+    { "term": "ピン留め", "full": "pinning", "cat": "storage", "desc": "IPFS上のデータを保持し続ける設定。ピン留めしないとガベージコレクションで消える恐れがある。" },
+    { "term": "ゲートウェイ", "full": "", "cat": "storage", "desc": "外部からIPFS等のデータにHTTPでアクセスするための中継口。" },
+    { "term": "HSM", "full": "Hardware Security Module", "cat": "crypto", "desc": "暗号鍵を内部で保護し、署名・復号などの処理だけを行う耐タンパ（こじ開け検知）の物理デバイス。" },
+    { "term": "NIST", "full": "National Institute of Standards and Technology", "cat": "crypto", "desc": "米国国立標準技術研究所。暗号やHSMの標準・定義を策定する。" },
+    { "term": "MPC", "full": "Multi-Party Computation", "cat": "crypto", "desc": "複数の主体が秘密を持ち寄り、各自の秘密を明かさずに計算する暗号技術。鍵を一箇所に集めない設計に使える。" },
+    { "term": "閾値署名", "full": "", "cat": "crypto", "desc": "秘密鍵を複数に分割し、一定数（閾値）が揃わないと署名できない方式。" },
+    { "term": "プロキシ再暗号化", "full": "Proxy Re-Encryption", "cat": "crypto", "desc": "平文に戻さずに「A宛ての暗号文」を「B宛ての暗号文」に変換できる暗号技術。鍵を渡さずに復号権限を委譲できる。" },
+    { "term": "属性ベース暗号", "full": "Attribute-Based Encryption", "cat": "crypto", "desc": "「役割=医師」などの属性条件を満たす者だけが復号できる暗号方式。きめ細かなアクセス制御に向く。" },
+    { "term": "LLM", "full": "Large Language Model", "cat": "ai", "desc": "大量のテキストで学習した大規模言語モデル。文章生成・要約・対話に使う。" },
+    { "term": "Confidential Computing", "full": "", "cat": "ai", "desc": "処理中のデータも暗号化された安全な領域（TEE）に閉じ込め、外部から覗けないようにする技術。" },
+    { "term": "TEE", "full": "Trusted Execution Environment", "cat": "ai", "desc": "CPU内の隔離された安全な実行環境。処理中のデータを保護する。" },
+    { "term": "ハルシネーション", "full": "hallucination", "cat": "ai", "desc": "AIが事実でない内容をもっともらしく生成してしまう現象。" }
   ],
   "externalFacts": [
     {
@@ -519,7 +563,8 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
   try { DATA = JSON.parse(document.getElementById('app-data').textContent); }
   catch(e){ document.body.insertAdjacentHTML('afterbegin','<p style="color:red;padding:1rem">データ読み込みエラー: '+e.message+'</p>'); return; }
 
-  var TERMS = {}; DATA.terms.forEach(function(t){ TERMS[t.abbr]=t; });
+  var TERMS = {}; DATA.terms.forEach(function(t){ TERMS[t.term]=t; });
+  var TERM_RE = new RegExp('(' + Object.keys(TERMS).sort(function(a,b){ return b.length - a.length; }).join('|') + ')', 'g');
   var BADGE = {
     verified:{label:'検証済',icon:'✓',cls:'verified'},
     verified_caution:{label:'裏付けあり・要注意',icon:'✓!',cls:'verified_caution'},
@@ -532,10 +577,9 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
-  function termize(text){
-    return text.replace(/\b(EHR|FHIR|HSM|IPFS|CID|MPC|LLM)\b/g, function(m){
-      var t = TERMS[m]; if(!t) return m;
-      return '<abbr class="term" tabindex="0" title="'+attr(t.full+' — '+t.ja)+'">'+m+'</abbr>';
+  function termize(escapedText){
+    return escapedText.replace(TERM_RE, function(m){
+      return '<span class="term" data-term="'+attr(m)+'" tabindex="0">'+m+'</span>';
     });
   }
   function badge(status){
@@ -613,27 +657,67 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     tbtn.textContent = next==='dark' ? '☀ ライト' : '🌙 ダーク';
   });
 
-  // svg diagram tooltips
-  var svgtip = document.getElementById('svgtip');
+  // glossary render
+  var CAT_LABELS = {standard:'標準・規格・組織',regulation:'規制・法制度',blockchain:'ブロックチェーン・台帳',storage:'分散ストレージ',crypto:'暗号・鍵管理',ai:'AI・計算基盤'};
+  var CAT_ORDER = ['standard','regulation','blockchain','storage','crypto','ai'];
+  (function(){
+    var gb = document.getElementById('glossary-body'); if(!gb) return;
+    var byCat = {};
+    DATA.terms.forEach(function(t){ (byCat[t.cat]=byCat[t.cat]||[]).push(t); });
+    var html = '';
+    CAT_ORDER.forEach(function(cat){
+      var items = byCat[cat]; if(!items) return;
+      html += '<div class="gloss-cat"><h3>'+esc(CAT_LABELS[cat]||cat)+'</h3><dl class="gloss-list">';
+      items.forEach(function(t){
+        html += '<dt>'+esc(t.term)+(t.full?' <span class="gloss-full">'+esc(t.full)+'</span>':'')+'</dt><dd>'+esc(t.desc)+'</dd>';
+      });
+      html += '</dl></div>';
+    });
+    gb.innerHTML = html;
+  })();
+
+  // tooltips (figure elements + glossary terms), shared element
+  var tip = document.getElementById('svgtip');
   function placeTip(x, y){
-    var w = svgtip.offsetWidth, h = svgtip.offsetHeight, m = 12;
+    var w = tip.offsetWidth, h = tip.offsetHeight, m = 12;
     var px = x + 14, py = y + 14;
     if(px + w > window.innerWidth - m) px = window.innerWidth - w - m;
     if(py + h > window.innerHeight - m) py = y - h - 14;
-    if(py < m) py = m;
-    svgtip.style.left = px + 'px'; svgtip.style.top = py + 'px';
+    if(py < m) py = m; if(px < m) px = m;
+    tip.style.left = px + 'px'; tip.style.top = py + 'px';
   }
-  function showTip(el, x, y){ svgtip.textContent = el.getAttribute('data-tip'); svgtip.classList.add('show'); placeTip(x, y); }
-  function hideTip(){ svgtip.classList.remove('show'); }
+  function showTip(html, x, y){ tip.innerHTML = html; tip.classList.add('show'); placeTip(x, y); }
+  function hideTip(){ tip.classList.remove('show'); }
+  // figure elements (static)
   [].slice.call(document.querySelectorAll('[data-tip]')).forEach(function(el){
-    el.setAttribute('tabindex','0');
-    el.setAttribute('role','img');
-    el.setAttribute('aria-label', el.getAttribute('data-tip'));
-    el.addEventListener('mouseenter', function(e){ showTip(el, e.clientX, e.clientY); });
-    el.addEventListener('mousemove', function(e){ if(svgtip.classList.contains('show')) placeTip(e.clientX, e.clientY); });
+    el.setAttribute('tabindex','0'); el.setAttribute('role','img'); el.setAttribute('aria-label', el.getAttribute('data-tip'));
+    el.addEventListener('mouseenter', function(e){ showTip(esc(el.getAttribute('data-tip')), e.clientX, e.clientY); });
+    el.addEventListener('mousemove', function(e){ if(tip.classList.contains('show')) placeTip(e.clientX, e.clientY); });
     el.addEventListener('mouseleave', hideTip);
-    el.addEventListener('focus', function(){ var r = el.getBoundingClientRect(); showTip(el, r.left + r.width/2, r.top + r.height/2); });
+    el.addEventListener('focus', function(){ var r = el.getBoundingClientRect(); showTip(esc(el.getAttribute('data-tip')), r.left + r.width/2, r.top + r.height/2); });
     el.addEventListener('blur', hideTip);
+  });
+  // glossary terms (delegated, for dynamically rendered cards)
+  function termTipHTML(key){
+    var t = TERMS[key]; if(!t) return esc(key);
+    return '<strong>'+esc(t.term)+(t.full?' <span class="tip-full">'+esc(t.full)+'</span>':'')+'</strong><br>'+esc(t.desc);
+  }
+  document.body.addEventListener('mouseover', function(e){
+    var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
+    showTip(termTipHTML(el.getAttribute('data-term')), e.clientX, e.clientY);
+  });
+  document.body.addEventListener('mousemove', function(e){
+    if(tip.classList.contains('show') && e.target.closest && e.target.closest('.term')) placeTip(e.clientX, e.clientY);
+  });
+  document.body.addEventListener('mouseout', function(e){
+    if(e.target.closest && e.target.closest('.term')) hideTip();
+  });
+  document.body.addEventListener('focusin', function(e){
+    var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
+    var r = el.getBoundingClientRect(); showTip(termTipHTML(el.getAttribute('data-term')), r.left + r.width/2, r.top + r.height/2);
+  });
+  document.body.addEventListener('focusout', function(e){
+    if(e.target.closest && e.target.closest('.term')) hideTip();
   });
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hideTip(); });
 })();
