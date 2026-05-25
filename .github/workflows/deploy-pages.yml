@@ -1,0 +1,43 @@
+# site/ ディレクトリを GitHub Pages へデプロイするワークフロー
+# 公開 URL: https://shuu5.github.io/EHR-blockchain/
+name: Deploy site to GitHub Pages
+
+on:
+  # main への push 時に自動デプロイ
+  push:
+    branches: [main]
+  # Actions タブから手動実行も可能
+  workflow_dispatch:
+
+# GITHUB_TOKEN に Pages デプロイ権限を付与
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時デプロイを 1 本に制限（実行中ジョブはキャンセルしない）
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact (site/ をそのまま公開ルートに)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

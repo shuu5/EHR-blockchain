@@ -18,3 +18,6 @@ site/dist/
 .playwright-mcp/
 # 動作確認用の一時スクリーンショット（ルート直下）
 /*.png
+
+# Claude Code セッション一時領域（ready-compaction の Working Memory 等）
+.claude-session/
