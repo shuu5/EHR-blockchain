@@ -32,6 +32,9 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # Pages が未有効の場合に自動で有効化する（初回デプロイ対応）
+          enablement: true
 
       - name: Upload artifact (site/ をそのまま公開ルートに)
         uses: actions/upload-pages-artifact@v3
