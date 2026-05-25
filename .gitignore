@@ -1,0 +1,15 @@
+# OS / エディタ
+.DS_Store
+*.swp
+*~
+
+# 一時ファイル
+*.tmp
+*.log
+
+# HTML ビルド系（使用する場合）
+node_modules/
+site/dist/
+
+# research の一時出力（参照用に手元へ置いた場合のみ無視）
+/tmp-research/
