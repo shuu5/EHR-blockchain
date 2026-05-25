@@ -577,8 +577,9 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
-  function termize(escapedText){
+  function termize(escapedText, seen){
     return escapedText.replace(TERM_RE, function(m){
+      if(seen){ if(seen[m]) return m; seen[m] = true; }
       return '<span class="term" data-term="'+attr(m)+'" tabindex="0">'+m+'</span>';
     });
   }
@@ -588,16 +589,20 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
   }
 
   function cardHTML(item, kind){
+    var seen = {};
     var techs = (item.technologies||[]).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
     var srcs = (item.sources||[]).map(function(s){return '<li><a href="'+attr(s.url)+'" target="_blank" rel="noopener">'+esc(s.label)+'</a></li>';}).join('');
-    var cav = item.caveat ? '<div class="caveat"><strong>⚠ 検証メモ:</strong> '+termize(esc(item.caveat))+'</div>' : '';
     var rel = (item.relatedFacts&&item.relatedFacts.length) ? '<div class="related">関連: '+item.relatedFacts.map(function(r){return '<a href="#card-'+r+'">'+r+'</a>';}).join('、')+'</div>' : '';
+    var titleH = termize(esc(item.title), seen);
+    var oneH = termize(esc(item.oneLiner), seen);
+    var bodyH = termize(esc(item.body), seen);
+    var cav = item.caveat ? '<div class="caveat"><strong>⚠ 検証メモ:</strong> '+termize(esc(item.caveat), seen)+'</div>' : '';
     return '<article class="card" data-status="'+item.verificationStatus+'" data-kind="'+kind+'" id="card-'+item.id+'">'
       +'<div class="card-head">'+badge(item.verificationStatus)+'<span class="card-id">'+item.id+'</span><span class="card-kind">'+KIND[kind]+'</span></div>'
-      +'<h3 class="card-title">'+termize(esc(item.title))+'</h3>'
-      +'<p class="card-oneliner">'+termize(esc(item.oneLiner))+'</p>'
+      +'<h3 class="card-title">'+titleH+'</h3>'
+      +'<p class="card-oneliner">'+oneH+'</p>'
       +'<details><summary>詳細・根拠を見る</summary>'
-      +'<div class="card-body">'+termize(esc(item.body))+'</div>'+cav+rel
+      +'<div class="card-body">'+bodyH+'</div>'+cav+rel
       +(techs?'<div class="tags">'+techs+'</div>':'')
       +(srcs?'<div class="sources"><strong>検証の主な出典:</strong><ul>'+srcs+'</ul></div>':'')
       +'</details></article>';
@@ -614,10 +619,13 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
 
   // final
   var fc = DATA.finalConclusion;
-  var warns = (fc.keyWarnings||[]).map(function(w){return '<li>'+termize(esc(w))+'</li>';}).join('');
+  var seenF = {};
+  var sumH = termize(esc(fc.summary), seenF);
+  var assH = termize(esc(fc.assessment), seenF);
+  var warns = (fc.keyWarnings||[]).map(function(w){return '<li>'+termize(esc(w), seenF)+'</li>';}).join('');
   document.getElementById('final-box').innerHTML =
-    '<p>'+termize(esc(fc.summary))+'</p>'
-    +'<p style="color:var(--text-sub)"><strong>検証総括:</strong> '+termize(esc(fc.assessment))+'</p>'
+    '<p>'+sumH+'</p>'
+    +'<p style="color:var(--text-sub)"><strong>検証総括:</strong> '+assH+'</p>'
     +'<div class="keywarn"><strong>⚠ 特に注意すべき3点:</strong><ul>'+warns+'</ul></div>';
 
   // status filter UI (only statuses present in data)
