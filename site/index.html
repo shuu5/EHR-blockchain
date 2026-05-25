@@ -25,7 +25,7 @@
   --shadow:0 2px 6px rgba(20,30,55,.08),0 1px 2px rgba(20,30,55,.05);
   --shadow-lg:0 16px 40px -14px rgba(18,32,66,.30),0 5px 14px -7px rgba(18,32,66,.18);
   --radius:14px; --radius-sm:9px;
-  --maxw:1060px; --measure:44rem;
+  --maxw:1060px; --measure:100%;
 }
 /* テーマはライト固定（ダークモード・テーマ切替は廃止） */
 *{box-sizing:border-box}
@@ -72,21 +72,10 @@ header.top h1{margin:.1rem 0 .65rem; font-weight:800; font-size:clamp(1.5rem,1re
 .toc a:hover{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); transform:translateY(-1px)}
 
 /* section */
-section{padding:clamp(1.7rem,4vw,2.4rem) 0 .6rem; scroll-margin-top:4.6rem}
+section{padding:clamp(1.7rem,4vw,2.4rem) 0 .6rem; scroll-margin-top:1.5rem}
 section>h2{font-size:clamp(1.18rem,1rem + .8vw,1.5rem); font-weight:800; margin:.2rem 0 .4rem; display:flex; align-items:center; gap:.6rem}
 section>h2::before{content:""; width:.5rem; height:1.05em; border-radius:3px; background:linear-gradient(var(--accent),var(--kind-conclusion)); flex:none}
 .sec-desc{color:var(--text-sub); font-size:.92rem; margin:.1rem 0 1.2rem; max-width:var(--measure); line-height:1.75}
-
-/* filter */
-.filterbar{position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--bg) 80%,transparent); backdrop-filter:blur(12px) saturate(1.5); -webkit-backdrop-filter:blur(12px) saturate(1.5); border-bottom:1px solid var(--border); padding:.7rem 0}
-.filterbar .wrap{display:flex; gap:.7rem 1.4rem; flex-wrap:wrap; align-items:center}
-fieldset.fgroup{border:none; margin:0; padding:0; display:flex; gap:.45rem; flex-wrap:wrap; align-items:center}
-fieldset.fgroup legend{float:left; font-family:var(--mono); font-weight:600; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); margin-right:.55rem; padding:0; line-height:2}
-.chk{display:inline-flex; align-items:center; gap:.38rem; font-size:.8rem; font-weight:500; padding:.36rem .62rem; border:1px solid var(--border); border-radius:999px; background:var(--surface); cursor:pointer; user-select:none; transition:border-color .15s,background .15s}
-.chk:hover{border-color:var(--accent)}
-.chk input{accent-color:var(--accent); margin:0; width:.95rem; height:.95rem}
-.chk:has(input:checked){border-color:color-mix(in srgb,var(--accent) 50%,var(--border)); background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
-#result-count{font-family:var(--mono); font-size:.76rem; color:var(--text-sub); margin-left:auto}
 
 /* cards */
 .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr)); gap:1.1rem}
@@ -146,11 +135,10 @@ summary:hover{text-decoration:underline}
 .term,.term-demo{text-decoration:underline dotted; text-decoration-color:color-mix(in srgb,var(--accent) 50%,transparent); text-underline-offset:3px; cursor:help; color:inherit}
 .term:hover{color:var(--accent); text-decoration-color:var(--accent)}
 .term:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; color:var(--accent)}
-.btn:focus-visible,.toc a:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:7px}
-.chk:focus-within{outline:2px solid var(--accent); outline-offset:2px}
+.toc a:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:7px}
 #svgtip strong{color:var(--bg)}
 .tip-full{font-family:var(--mono); font-weight:400; opacity:.8; font-size:.86em}
-.glossary{display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr)); align-items:start}
+.glossary{display:grid; gap:1.1rem; grid-template-columns:1fr; align-items:start}
 .gloss-cat{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.9rem 1.1rem; box-shadow:var(--shadow-sm)}
 .gloss-cat h3{margin:.1rem 0 .7rem; font-family:var(--mono); font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; color:var(--accent-ink); border-bottom:1px solid var(--border); padding-bottom:.4rem}
 .gloss-list{margin:0; display:grid; grid-template-columns:minmax(120px,max-content) 1fr; gap:.5rem .9rem; align-items:baseline}
@@ -207,10 +195,7 @@ footer code{font-size:.82em}
 
 /* ---- responsive: phones & tablets ---- */
 @media(max-width:720px){
-  .filterbar{position:static; backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--surface-2)}
-  .filterbar .wrap{gap:.55rem 1rem}
   .toc a{padding:.55rem .85rem}
-  .chk{padding:.46rem .72rem}
   section{scroll-margin-top:1rem}
   .card-kind{margin-left:0}
 }
@@ -230,7 +215,7 @@ footer code{font-size:.82em}
 </style>
 </head>
 <body>
-<a href="#section-conclusions" class="skip">本文へスキップ</a>
+<a href="#section-diagrams" class="skip">本文へスキップ</a>
 
 <header class="top">
   <div class="wrap">
@@ -239,9 +224,9 @@ footer code{font-size:.82em}
     <p class="lead">過去の検討から到達した最終結論を、<strong>情報源の区分</strong>（外部で確認できた事実 / 過去会話由来の設計結論）と、<strong>2024–2026 の最新文献による検証ステータス</strong>を添えて整理したものです。各カードを開くと根拠と出典を確認できます。</p>
     <nav class="toc" aria-label="目次">
       <span class="toc-title">目次</span>
+      <a href="#section-diagrams">アーキテクチャ図</a>
       <a href="#section-facts">外部事実</a>
       <a href="#section-conclusions">設計結論</a>
-      <a href="#section-diagrams">アーキテクチャ図</a>
       <a href="#section-matrix">検証マトリクス</a>
       <a href="#section-final">最終結論</a>
       <a href="#section-glossary">用語集</a>
@@ -249,31 +234,7 @@ footer code{font-size:.82em}
   </div>
 </header>
 
-<div class="filterbar">
-  <div class="wrap">
-    <fieldset class="fgroup" id="filter-status"><legend>検証ステータス</legend></fieldset>
-    <fieldset class="fgroup" id="filter-kind">
-      <legend>種別</legend>
-      <label class="chk"><input type="checkbox" class="f-kind" value="external_fact" checked> 外部事実</label>
-      <label class="chk"><input type="checkbox" class="f-kind" value="conclusion" checked> 設計結論</label>
-    </fieldset>
-    <output id="result-count" role="status" aria-live="polite"></output>
-  </div>
-</div>
-
 <main class="wrap">
-  <section id="section-facts">
-    <h2>外部資料で再確認できた事実</h2>
-    <p class="sec-desc">原典が「外部資料で確認済み」と位置づける3点。一次資料（厚労省・HL7・NIST）に照らして検証しました。</p>
-    <div class="grid" id="facts-grid"></div>
-  </section>
-
-  <section id="section-conclusions">
-    <h2>過去会話から抽出された設計結論（C1–C11）</h2>
-    <p class="sec-desc">原典は外部未検証の「設計結論」と明示。本サイトでは 2024–2026 の学術・規制動向に照らした検証ステータスを付与しています。フィルタで絞り込めます。</p>
-    <div class="grid" id="concl-grid"></div>
-  </section>
-
   <section id="section-diagrams">
     <h2>アーキテクチャ図</h2>
     <p class="sec-desc">結論の中核となる3つの構造を図解します。要素にカーソルを合わせると補足が出ます。</p>
@@ -364,6 +325,18 @@ footer code{font-size:.82em}
         <text class="svg-ts" x="630" y="289" text-anchor="middle">⑤ 復号して参照</text>
       </svg>
     </div>
+  </section>
+
+  <section id="section-facts">
+    <h2>外部資料で再確認できた事実</h2>
+    <p class="sec-desc">原典が「外部資料で確認済み」と位置づける3点。一次資料（厚労省・HL7・NIST）に照らして検証しました。</p>
+    <div class="grid" id="facts-grid"></div>
+  </section>
+
+  <section id="section-conclusions">
+    <h2>過去会話から抽出された設計結論（C1–C11）</h2>
+    <p class="sec-desc">原典は外部未検証の「設計結論」と明示。本サイトでは 2024–2026 の学術・規制動向に照らした検証ステータスを付与しています。フィルタで絞り込めます。</p>
+    <div class="grid" id="concl-grid"></div>
   </section>
 
   <section id="section-matrix">
@@ -681,30 +654,7 @@ footer code{font-size:.82em}
     +'<p style="color:var(--text-sub)"><strong>検証総括:</strong> '+assH+'</p>'
     +'<div class="keywarn"><strong>⚠ 特に注意すべき3点:</strong><ul>'+warns+'</ul></div>';
 
-  // status filter UI (only statuses present in data)
-  var present = {};
-  DATA.externalFacts.concat(DATA.conclusions).forEach(function(i){ present[i.verificationStatus]=true; });
-  var order = ['verified','verified_caution','partial','caution','unverifiable','pending'];
-  var fsHtml='';
-  order.forEach(function(s){
-    if(!present[s]) return;
-    var b=BADGE[s];
-    fsHtml += '<label class="chk"><input type="checkbox" class="f-status" value="'+s+'" checked> '+b.icon+' '+b.label+'</label>';
-  });
-  document.getElementById('filter-status').insertAdjacentHTML('beforeend', fsHtml);
-
-  function applyFilters(){
-    var st = [].slice.call(document.querySelectorAll('.f-status:checked')).map(function(e){return e.value;});
-    var kd = [].slice.call(document.querySelectorAll('.f-kind:checked')).map(function(e){return e.value;});
-    var n=0;
-    [].slice.call(document.querySelectorAll('#facts-grid .card, #concl-grid .card')).forEach(function(c){
-      var show = st.indexOf(c.dataset.status)>=0 && kd.indexOf(c.dataset.kind)>=0;
-      c.hidden = !show; if(show) n++;
-    });
-    document.getElementById('result-count').textContent = n>0 ? n+' 件を表示中' : '条件に一致するカードがありません（フィルタを見直してください）';
-  }
-  [].slice.call(document.querySelectorAll('.f-status, .f-kind')).forEach(function(e){ e.addEventListener('change', applyFilters); });
-  applyFilters();
+  // フィルタ機能は廃止（全カードを常時表示）
 
   // テーマ切替は廃止（常時ライトモード）
 
