@@ -3,202 +3,500 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <title>電子カルテ×ブロックチェーン — 設計結論と検証ステータス</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔗</text></svg>">
-<script>(function(){var d=document.documentElement;if(!d.getAttribute('data-theme')){d.setAttribute('data-theme',(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');}})();</script>
 <style>
 :root{
-  --bg:#f7f8fa; --surface:#ffffff; --surface-2:#f0f2f5; --border:#dde1e7;
-  --text:#1c2330; --text-sub:#5b6677; --link:#0a5cc4;
-  --c-verified:#1a7f37; --c-verified_caution:#9a7000; --c-partial:#b45309;
-  --c-caution:#c2410c; --c-unverifiable:#b91c1c; --c-pending:#5b6677;
-  --kind-fact:#0a5cc4; --kind-conclusion:#7c3aed;
-  --onchain:#e7f0ff; --onchain-bd:#9dbcf0; --offchain:#e7f7ee; --offchain-bd:#93cfae;
-  --shadow:0 1px 3px rgba(20,30,50,.08),0 1px 2px rgba(20,30,50,.04);
-  --maxw:980px;
+  /* type system: 日本語は高品質システムサンス、Latinはui書体。技術メタはmonoでドシエ感 */
+  --sans:-apple-system,"Segoe UI Variable Text","Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Noto Sans JP","BIZ UDPGothic",Meiryo,system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono","Cascadia Code",Menlo,Consolas,"DejaVu Sans Mono","Noto Sans Mono",monospace;
+  /* light palette — clinical paper（白カードが浮く寒色ペーパー） */
+  --bg:#e7edf4; --surface:#ffffff; --surface-2:#eef2f8; --surface-3:#e2e9f2;
+  --border:#d3dbe6; --border-strong:#bdc8d8;
+  --text:#131b29; --text-sub:#53617a; --text-faint:#8492a7;
+  --link:#0e58c4; --accent:#0e58c4; --accent-ink:#0a3f8f;
+  --c-verified:#137a36; --c-verified_caution:#8a6500; --c-partial:#a85309;
+  --c-caution:#b8400c; --c-unverifiable:#b3171c; --c-pending:#5b6677;
+  --kind-fact:#0e58c4; --kind-conclusion:#6d34d6;
+  --onchain:#e6efff; --onchain-bd:#9dbcf0; --offchain:#e4f5ec; --offchain-bd:#8ccfab;
+  --dot:rgba(20,40,80,.05);
+  --shadow-sm:0 1px 2px rgba(20,30,55,.06),0 1px 1px rgba(20,30,55,.04);
+  --shadow:0 2px 6px rgba(20,30,55,.08),0 1px 2px rgba(20,30,55,.05);
+  --shadow-lg:0 16px 40px -14px rgba(18,32,66,.30),0 5px 14px -7px rgba(18,32,66,.18);
+  --radius:14px; --radius-sm:9px;
+  --maxw:1060px; --measure:100%;
 }
-/* ダーク値は data-theme="dark" の一箇所に集約（初期テーマは <head> のスクリプトがOS設定から設定） */
-:root[data-theme="dark"]{
-  --bg:#0f1320; --surface:#171c2b; --surface-2:#1f2638; --border:#2c3650;
-  --text:#e6e9f0; --text-sub:#9aa6bd; --link:#6ea8ff;
-  --c-verified:#46c46a; --c-verified_caution:#d9b14b; --c-partial:#e09b4a;
-  --c-caution:#f08a4a; --c-unverifiable:#f06a6a; --c-pending:#9aa6bd;
-  --onchain:#16243f; --onchain-bd:#2f4a78; --offchain:#13301f; --offchain-bd:#2c6a45;
-  --shadow:0 1px 3px rgba(0,0,0,.4);
-}
+/* テーマはライト固定（ダークモード・テーマ切替は廃止） */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
-  margin:0; background:var(--bg); color:var(--text);
-  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif;
-  line-height:1.8; letter-spacing:.01em; -webkit-font-smoothing:antialiased;
+  margin:0; color:var(--text);
+  background-color:var(--bg);
+  background-image:radial-gradient(var(--dot) 1px,transparent 1.6px);
+  background-size:24px 24px;
+  font-family:var(--sans); font-feature-settings:"palt" 1;
+  line-height:1.85; letter-spacing:.012em;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow-wrap:break-word;
 }
-.wrap{max-width:var(--maxw); margin:0 auto; padding:0 1.1rem}
-a{color:var(--link)}
-h1,h2,h3{line-height:1.4; letter-spacing:.01em}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 clamp(1rem,4vw,2rem)}
+a{color:var(--link); text-underline-offset:.18em; text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+h1,h2,h3{line-height:1.34; letter-spacing:.01em; text-wrap:balance}
+p{text-wrap:pretty}
+code{font-family:var(--mono); font-size:.86em; background:var(--surface-2); padding:.08em .38em; border-radius:5px; border:1px solid var(--border)}
+::selection{background:color-mix(in srgb,var(--accent) 26%,transparent)}
 
 /* header */
-header.top{background:linear-gradient(135deg,var(--surface),var(--surface-2)); border-bottom:1px solid var(--border); padding:2rem 0 1.4rem}
-header.top h1{margin:.2rem 0 .5rem; font-size:1.7rem}
-.lead{color:var(--text-sub); margin:.3rem 0 1rem; max-width:64ch}
-.toolbar{display:flex; gap:.6rem; flex-wrap:wrap; align-items:center}
-.btn{background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:.4rem .8rem; font-size:.85rem; cursor:pointer; box-shadow:var(--shadow)}
-.btn:hover{border-color:var(--link)}
-.toc{display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.4rem; font-size:.85rem}
-.toc a{text-decoration:none; color:var(--text-sub); padding:.2rem .55rem; border:1px solid var(--border); border-radius:999px; background:var(--surface)}
-.toc a:hover{color:var(--link); border-color:var(--link)}
+header.top{
+  position:relative; overflow:hidden;
+  background:
+    radial-gradient(120% 150% at 88% -25%, color-mix(in srgb,var(--accent) 13%,transparent), transparent 58%),
+    linear-gradient(180deg,var(--surface),var(--surface-2));
+  border-bottom:1px solid var(--border);
+  padding:clamp(1.6rem,4vw,2.7rem) 0 clamp(1.2rem,3vw,1.7rem);
+}
+header.top::before{content:""; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--accent),var(--kind-conclusion))}
+.eyebrow{margin:0 0 .6rem; font-family:var(--mono); font-size:.72rem; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-ink); display:inline-flex; align-items:center; gap:.5rem}
+.eyebrow::before{content:"◆"; font-size:.62em; opacity:.65}
+header.top h1{margin:.1rem 0 .65rem; font-weight:800; font-size:clamp(1.5rem,1rem + 2.4vw,2.3rem); letter-spacing:.004em}
+.lead{color:var(--text-sub); margin:.3rem 0 1.4rem; max-width:var(--measure); font-size:clamp(.92rem,.88rem + .3vw,1.02rem)}
+.lead strong{color:var(--text)}
 
-/* legend */
-.legend{display:flex; gap:1.4rem; flex-wrap:wrap; margin:1rem 0 .2rem; font-size:.82rem; color:var(--text-sub)}
-.legend .grp{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
-.src-chip{display:inline-flex; align-items:center; gap:.3rem; padding:.1rem .5rem; border-radius:6px; border:1px solid var(--border)}
-.src-chip.fact{border-left:4px solid var(--kind-fact)}
-.src-chip.conclusion{border-left:4px solid var(--kind-conclusion)}
+/* index (目次): 番号付きで一覧性を明確化 */
+.toc{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-top:.2rem; counter-reset:toc}
+.toc-title{font-family:var(--mono); font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin-right:.3rem}
+.toc-title::before{content:"❯"; color:var(--accent); margin-right:.4em}
+.toc a{display:inline-flex; align-items:baseline; gap:.45rem; text-decoration:none; color:var(--text); font-weight:600; font-size:.83rem; padding:.45rem .8rem; border:1px solid var(--border); border-radius:9px; background:var(--surface); box-shadow:var(--shadow-sm); transition:color .15s,border-color .15s,background .15s,transform .1s}
+.toc a::before{counter-increment:toc; content:counter(toc,decimal-leading-zero); font-family:var(--mono); font-size:.82em; font-weight:700; color:var(--accent)}
+.toc a:hover{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); transform:translateY(-1px)}
 
 /* section */
-section{padding:1.8rem 0 .6rem}
-section>h2{font-size:1.3rem; margin:.2rem 0 .3rem; display:flex; align-items:center; gap:.5rem}
-.sec-desc{color:var(--text-sub); font-size:.9rem; margin:.1rem 0 1rem; max-width:68ch}
-
-/* filter */
-.filterbar{position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--bg) 86%,transparent); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); padding:.7rem 0}
-.filterbar .wrap{display:flex; gap:1.4rem; flex-wrap:wrap; align-items:center}
-fieldset.fgroup{border:none; margin:0; padding:0; display:flex; gap:.45rem; flex-wrap:wrap; align-items:center}
-fieldset.fgroup legend{float:left; font-weight:700; font-size:.8rem; color:var(--text-sub); margin-right:.5rem; padding:0}
-.chk{display:inline-flex; align-items:center; gap:.3rem; font-size:.8rem; padding:.2rem .55rem; border:1px solid var(--border); border-radius:999px; background:var(--surface); cursor:pointer; user-select:none}
-.chk input{accent-color:var(--link); margin:0}
-#result-count{font-size:.8rem; color:var(--text-sub); margin-left:auto}
+section{padding:clamp(1.7rem,4vw,2.4rem) 0 .6rem; scroll-margin-top:1.5rem}
+section>h2{font-size:clamp(1.18rem,1rem + .8vw,1.5rem); font-weight:800; margin:.2rem 0 .4rem; display:flex; align-items:center; gap:.6rem}
+section>h2::before{content:""; width:.5rem; height:1.05em; border-radius:3px; background:linear-gradient(var(--accent),var(--kind-conclusion)); flex:none}
+.sec-desc{color:var(--text-sub); font-size:.92rem; margin:.1rem 0 1.2rem; max-width:var(--measure); line-height:1.75}
 
 /* cards */
-.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:1rem}
-.card{background:var(--surface); border:1px solid var(--border); border-left:5px solid var(--c-pending); border-radius:12px; padding:1rem 1.1rem; box-shadow:var(--shadow)}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr)); gap:1.1rem}
+.card{position:relative; background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--c-pending); border-radius:var(--radius); padding:1.1rem 1.2rem; box-shadow:var(--shadow-sm); transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg); border-color:var(--border-strong)}
 .card[data-status="verified"]{border-left-color:var(--c-verified)}
 .card[data-status="verified_caution"]{border-left-color:var(--c-verified_caution)}
 .card[data-status="partial"]{border-left-color:var(--c-partial)}
 .card[data-status="caution"]{border-left-color:var(--c-caution)}
 .card[data-status="unverifiable"]{border-left-color:var(--c-unverifiable)}
 .card[hidden]{display:none}
-.card-head{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.4rem}
-.card-id{font-weight:800; font-size:.8rem; color:var(--text-sub); background:var(--surface-2); padding:.05rem .45rem; border-radius:6px}
-.card-kind{font-size:.72rem; color:var(--text-sub)}
-.card-title{margin:.1rem 0 .25rem; font-size:1.05rem}
-.card-oneliner{margin:.1rem 0 .5rem; color:var(--text)}
-details{border-top:1px dashed var(--border); padding-top:.45rem; margin-top:.2rem}
-summary{cursor:pointer; color:var(--link); font-size:.85rem; list-style-position:inside}
+@media(prefers-reduced-motion:no-preference){
+  .grid>.card{animation:cardrise .5s cubic-bezier(.22,.61,.36,1) backwards}
+  .grid>.card:nth-child(2){animation-delay:.05s}
+  .grid>.card:nth-child(3){animation-delay:.1s}
+  .grid>.card:nth-child(4){animation-delay:.15s}
+  .grid>.card:nth-child(5){animation-delay:.2s}
+  .grid>.card:nth-child(6){animation-delay:.25s}
+  .grid>.card:nth-child(n+7){animation-delay:.3s}
+}
+@keyframes cardrise{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}}
+@media(hover:none){ .card:hover{transform:none; box-shadow:var(--shadow-sm)} }
+.card-head{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem}
+.card-id{font-family:var(--mono); font-weight:700; font-size:.78rem; letter-spacing:.02em; color:var(--accent-ink); background:color-mix(in srgb,var(--accent) 10%,var(--surface)); border:1px solid color-mix(in srgb,var(--accent) 22%,var(--border)); padding:.1rem .5rem; border-radius:6px}
+.card-kind{font-family:var(--mono); font-size:.67rem; letter-spacing:.05em; text-transform:uppercase; color:var(--text-faint); margin-left:auto}
+.card-title{margin:.15rem 0 .3rem; font-size:clamp(1.02rem,.99rem + .25vw,1.13rem); font-weight:800; line-height:1.45}
+.card-oneliner{margin:.1rem 0 .6rem; color:var(--text); font-size:.95rem}
+details{border-top:1px dashed var(--border); padding-top:.5rem; margin-top:.3rem}
+summary{cursor:pointer; color:var(--accent); font-size:.85rem; font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:.4rem; padding:.25rem 0}
+summary::-webkit-details-marker{display:none}
+summary::marker{content:""}
+summary::before{content:"▸"; font-size:.85em; transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
 summary:hover{text-decoration:underline}
-.card-body{margin:.6rem 0; font-size:.92rem}
-.caveat{background:color-mix(in srgb,var(--c-caution) 12%,var(--surface)); border-left:3px solid var(--c-caution); padding:.5rem .7rem; border-radius:6px; font-size:.86rem; margin:.5rem 0}
-.related{font-size:.8rem; color:var(--text-sub); margin:.3rem 0}
-.related a{text-decoration:none}
-.tags{display:flex; gap:.35rem; flex-wrap:wrap; margin:.5rem 0 .2rem}
-.tag{font-size:.72rem; background:var(--surface-2); color:var(--text-sub); padding:.1rem .5rem; border-radius:999px; border:1px solid var(--border)}
-.sources{font-size:.82rem; margin-top:.5rem}
-.sources ul{margin:.25rem 0 0; padding-left:1.1rem}
+.card-body{margin:.6rem 0; font-size:.92rem; line-height:1.8}
+.caveat{background:color-mix(in srgb,var(--c-caution) 11%,var(--surface)); border-left:3px solid var(--c-caution); padding:.6rem .8rem; border-radius:8px; font-size:.87rem; line-height:1.7; margin:.6rem 0}
+.related{font-size:.82rem; color:var(--text-sub); margin:.4rem 0}
+.related a{text-decoration:none; font-family:var(--mono); font-weight:600}
+.tags{display:flex; gap:.4rem; flex-wrap:wrap; margin:.6rem 0 .2rem}
+.tag{font-family:var(--mono); font-size:.7rem; background:var(--surface-2); color:var(--text-sub); padding:.15rem .55rem; border-radius:999px; border:1px solid var(--border)}
+.sources{font-size:.83rem; margin-top:.6rem}
+.sources strong{font-family:var(--mono); font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; color:var(--text-faint); font-weight:600}
+.sources ul{margin:.3rem 0 0; padding-left:1.15rem}
+.sources li{margin:.18rem 0}
 
 /* badge */
-.badge{display:inline-flex; align-items:center; gap:.3rem; font-size:.74rem; font-weight:700; padding:.12rem .55rem; border-radius:999px; border:1px solid currentColor; white-space:nowrap}
-.badge-verified{color:var(--c-verified); background:color-mix(in srgb,var(--c-verified) 13%,transparent)}
-.badge-verified_caution{color:var(--c-verified_caution); background:color-mix(in srgb,var(--c-verified_caution) 13%,transparent)}
-.badge-partial{color:var(--c-partial); background:color-mix(in srgb,var(--c-partial) 13%,transparent)}
-.badge-caution{color:var(--c-caution); background:color-mix(in srgb,var(--c-caution) 13%,transparent)}
-.badge-unverifiable{color:var(--c-unverifiable); background:color-mix(in srgb,var(--c-unverifiable) 13%,transparent)}
-.badge-pending{color:var(--c-pending); background:color-mix(in srgb,var(--c-pending) 13%,transparent)}
+.badge{display:inline-flex; align-items:center; gap:.32rem; font-size:.74rem; font-weight:700; padding:.16rem .6rem; border-radius:999px; border:1px solid currentColor; white-space:nowrap; letter-spacing:.01em}
+.badge>[aria-hidden]{font-family:var(--mono); font-weight:700}
+.badge-verified{color:var(--c-verified); background:color-mix(in srgb,var(--c-verified) 14%,transparent)}
+.badge-verified_caution{color:var(--c-verified_caution); background:color-mix(in srgb,var(--c-verified_caution) 14%,transparent)}
+.badge-partial{color:var(--c-partial); background:color-mix(in srgb,var(--c-partial) 14%,transparent)}
+.badge-caution{color:var(--c-caution); background:color-mix(in srgb,var(--c-caution) 14%,transparent)}
+.badge-unverifiable{color:var(--c-unverifiable); background:color-mix(in srgb,var(--c-unverifiable) 14%,transparent)}
+.badge-pending{color:var(--c-pending); background:color-mix(in srgb,var(--c-pending) 14%,transparent)}
 
 /* term tooltip & glossary */
-.term,.term-demo{text-decoration:underline dotted; text-underline-offset:3px; cursor:help; color:inherit}
-.term:hover{color:var(--link)}
-.term:focus-visible{outline:2px solid var(--link); outline-offset:2px; border-radius:3px; color:var(--link)}
-.btn:focus-visible,.toc a:focus-visible,.chk:focus-within,summary:focus-visible{outline:2px solid var(--link); outline-offset:2px}
+.term,.term-demo{text-decoration:underline dotted; text-decoration-color:color-mix(in srgb,var(--accent) 50%,transparent); text-underline-offset:3px; cursor:help; color:inherit}
+.term:hover{color:var(--accent); text-decoration-color:var(--accent)}
+.term:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; color:var(--accent)}
+.toc a:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:7px}
 #svgtip strong{color:var(--bg)}
-.tip-full{font-weight:400; opacity:.82; font-size:.9em}
-.glossary{display:grid; gap:1rem}
-.gloss-cat{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:.8rem 1.1rem; box-shadow:var(--shadow)}
-.gloss-cat h3{margin:.2rem 0 .6rem; font-size:.95rem; color:var(--link); border-bottom:1px solid var(--border); padding-bottom:.3rem}
-.gloss-list{margin:0; display:grid; grid-template-columns:minmax(130px,max-content) 1fr; gap:.5rem .9rem; align-items:baseline}
+.tip-full{font-family:var(--mono); font-weight:400; opacity:.8; font-size:.86em}
+.glossary{display:grid; gap:1.1rem; grid-template-columns:1fr; align-items:start}
+.gloss-cat{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.9rem 1.1rem; box-shadow:var(--shadow-sm)}
+.gloss-cat h3{margin:.1rem 0 .7rem; font-family:var(--mono); font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; color:var(--accent-ink); border-bottom:1px solid var(--border); padding-bottom:.4rem}
+.gloss-list{margin:0; display:grid; grid-template-columns:minmax(120px,max-content) 1fr; gap:.5rem .9rem; align-items:baseline}
 .gloss-list dt{font-weight:700; font-size:.88rem}
-.gloss-list dd{margin:0; font-size:.85rem; color:var(--text-sub)}
-.gloss-full{display:block; font-weight:400; font-size:.74rem; color:var(--text-sub)}
-@media(max-width:560px){ .gloss-list{grid-template-columns:1fr; gap:.1rem .5rem} .gloss-list dd{margin-bottom:.5rem} }
+.gloss-list dd{margin:0; font-size:.85rem; color:var(--text-sub); line-height:1.65}
+.gloss-full{display:block; font-family:var(--mono); font-weight:400; font-size:.72rem; color:var(--text-faint)}
+@media(max-width:560px){ .gloss-list{grid-template-columns:1fr; gap:.1rem .5rem} .gloss-list dd{margin-bottom:.6rem} }
 
 /* matrix */
-.matrix-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:12px}
-table.matrix{width:100%; border-collapse:collapse; font-size:.85rem; background:var(--surface); min-width:640px}
-table.matrix th,table.matrix td{text-align:left; padding:.55rem .7rem; border-bottom:1px solid var(--border); vertical-align:top}
-table.matrix thead th{background:var(--surface-2); position:sticky; top:0; font-size:.78rem}
+.matrix-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm)}
+table.matrix{width:100%; border-collapse:collapse; font-size:.86rem; background:var(--surface); min-width:600px}
+table.matrix th,table.matrix td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--border); vertical-align:top}
+table.matrix thead th{background:var(--surface-2); position:sticky; top:0; z-index:1; font-family:var(--mono); font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; color:var(--text-sub)}
+table.matrix tbody tr{transition:background .12s}
+table.matrix tbody tr:hover{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+table.matrix td:first-child a{font-family:var(--mono); font-weight:700; text-decoration:none}
 table.matrix tr:last-child td{border-bottom:none}
 
 /* diagrams */
-.diagram{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; margin:0 0 1.2rem; box-shadow:var(--shadow)}
-.diagram h3{margin:.1rem 0 .2rem; font-size:1rem}
-.diagram p.cap{color:var(--text-sub); font-size:.82rem; margin:.1rem 0 .7rem}
+.diagram{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.2rem; margin:0 0 1.3rem; box-shadow:var(--shadow-sm)}
+.diagram h3{margin:.1rem 0 .25rem; font-size:1.02rem; font-weight:800}
+.diagram p.cap{color:var(--text-sub); font-size:.85rem; margin:.1rem 0 .9rem; max-width:var(--measure); line-height:1.7}
 .diagram svg{width:100%; height:auto; display:block; max-width:760px; margin:0 auto}
 .svg-box{fill:var(--surface); stroke:var(--border)}
 .svg-on{fill:var(--onchain); stroke:var(--onchain-bd)}
 .svg-off{fill:var(--offchain); stroke:var(--offchain-bd)}
-.svg-t{fill:var(--text); font-size:13px; font-family:inherit}
-.svg-ts{fill:var(--text-sub); font-size:11px; font-family:inherit}
+.svg-t{fill:var(--text); font-size:13px; font-family:var(--sans)}
+.svg-ts{fill:var(--text-sub); font-size:11px; font-family:var(--sans)}
 .svg-line{stroke:var(--text-sub); stroke-width:1.5; fill:none}
 .svg-dash{stroke:var(--text-sub); stroke-width:1.5; fill:none; stroke-dasharray:5 4}
+.svg-tt{fill:var(--text); font-size:13.5px; font-weight:800; font-family:var(--sans)}
+.svg-plane{fill:var(--surface-2); stroke:var(--border)}
+.svg-key{fill:color-mix(in srgb,var(--kind-conclusion) 10%,var(--surface)); stroke:color-mix(in srgb,var(--kind-conclusion) 42%,var(--border))}
+.svg-rail{fill:color-mix(in srgb,var(--c-caution) 9%,var(--surface)); stroke:color-mix(in srgb,var(--c-caution) 34%,var(--border))}
+.svg-val{fill:color-mix(in srgb,var(--accent) 6%,var(--surface)); stroke:color-mix(in srgb,var(--accent) 26%,var(--border))}
+.svg-flow-data{stroke:var(--c-verified); stroke-width:2.2; fill:none}
+.svg-flow-perm{stroke:var(--accent); stroke-width:2.2; fill:none}
+.svg-num{fill:var(--accent); font-size:11px; font-weight:800; font-family:var(--mono)}
 .diagram svg text{pointer-events:none}
 rect.tipnode{cursor:help; transition:stroke .1s}
-rect.tipnode:hover,rect.tipnode:focus{stroke:var(--link); stroke-width:2.5; outline:none}
-#svgtip{position:fixed; z-index:60; max-width:300px; background:var(--text); color:var(--bg); padding:.5rem .7rem; border-radius:8px; font-size:.78rem; line-height:1.55; box-shadow:0 6px 18px rgba(0,0,0,.3); pointer-events:none; opacity:0; transition:opacity .12s}
+rect.tipnode:hover,rect.tipnode:focus{stroke:var(--accent); stroke-width:2.5; outline:none}
+#svgtip{position:fixed; z-index:60; max-width:300px; background:var(--text); color:var(--bg); padding:.55rem .75rem; border-radius:8px; font-size:.78rem; line-height:1.55; box-shadow:var(--shadow-lg); pointer-events:none; opacity:0; transition:opacity .12s}
 #svgtip.show{opacity:1}
 
 /* final */
-.final{background:linear-gradient(135deg,var(--surface),var(--surface-2)); border:1px solid var(--border); border-radius:12px; padding:1.2rem 1.3rem; box-shadow:var(--shadow)}
+.final{position:relative; overflow:hidden; background:linear-gradient(180deg,var(--surface),var(--surface-2)); border:1px solid var(--border); border-radius:var(--radius); padding:1.3rem 1.4rem 1.3rem 1.6rem; box-shadow:var(--shadow)}
+.final::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:linear-gradient(var(--accent),var(--kind-conclusion))}
+.final>p{max-width:var(--measure)}
+.final>p:first-child{font-size:1.02rem; line-height:1.9}
 .final ol{margin:.5rem 0; padding-left:1.3rem}
 .final li{margin:.4rem 0}
-.keywarn{margin-top:.9rem}
-.keywarn li{margin:.3rem 0}
+.keywarn{margin-top:1.1rem; background:color-mix(in srgb,var(--c-caution) 8%,var(--surface)); border:1px solid color-mix(in srgb,var(--c-caution) 26%,var(--border)); border-radius:10px; padding:.8rem 1rem}
+.keywarn>strong{color:var(--c-caution)}
+.keywarn ul{margin:.4rem 0 0; padding-left:1.2rem}
+.keywarn li{margin:.35rem 0}
 
-footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4rem; color:var(--text-sub); font-size:.82rem}
+footer{border-top:1px solid var(--border); margin-top:2.5rem; padding:1.6rem 0 2.8rem; color:var(--text-sub); font-size:.83rem; line-height:1.75}
+footer p{max-width:var(--measure)}
+footer code{font-size:.82em}
 .skip{position:absolute; left:-999px}
-.skip:focus{left:1rem; top:1rem; background:var(--surface); padding:.5rem; z-index:100; border:1px solid var(--link); border-radius:6px}
+.skip:focus{left:1rem; top:1rem; background:var(--surface); padding:.5rem .8rem; z-index:100; border:1px solid var(--accent); border-radius:8px}
+
+/* ---- responsive: phones & tablets ---- */
+@media(max-width:720px){
+  .toc a{padding:.55rem .85rem}
+  section{scroll-margin-top:1rem}
+  .card-kind{margin-left:0}
+}
+@media(max-width:600px){
+  .diagram{overflow-x:auto}
+  .diagram svg{min-width:500px}
+}
+/* ---- motion & contrast preferences ---- */
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important; animation-delay:0!important; transition-duration:.001ms!important}
+}
+@media(prefers-contrast:more){
+  :root{--border:#98a6b8; --border-strong:#7b8a9d; --text-sub:#3b4859}
+  .card,.gloss-cat,.diagram,.matrix-wrap{border-width:1.5px}
+}
 </style>
 </head>
 <body>
-<a href="#section-conclusions" class="skip">本文へスキップ</a>
+<a href="#section-diagrams" class="skip">本文へスキップ</a>
 
 <header class="top">
   <div class="wrap">
+    <p class="eyebrow">EHR &times; Blockchain 設計検証</p>
     <h1>電子カルテ × ブロックチェーン<br>— 設計結論と検証ステータス</h1>
     <p class="lead">過去の検討から到達した最終結論を、<strong>情報源の区分</strong>（外部で確認できた事実 / 過去会話由来の設計結論）と、<strong>2024–2026 の最新文献による検証ステータス</strong>を添えて整理したものです。各カードを開くと根拠と出典を確認できます。</p>
-    <div class="toolbar">
-      <button class="btn" id="theme-toggle" aria-label="テーマ切替">🌓 テーマ</button>
-      <nav class="toc" aria-label="目次">
-        <a href="#section-facts">外部事実</a>
-        <a href="#section-conclusions">設計結論11</a>
-        <a href="#section-diagrams">アーキ図</a>
-        <a href="#section-matrix">検証マトリクス</a>
-        <a href="#section-final">最終結論</a>
-        <a href="#section-glossary">用語集</a>
-      </nav>
-    </div>
-    <div class="legend">
-      <div class="grp"><strong>情報源:</strong>
-        <span class="src-chip fact">外部事実（一次資料で確認）</span>
-        <span class="src-chip conclusion">設計結論（過去会話由来）</span>
-      </div>
-    </div>
-    <div class="legend" id="legend-status"><div class="grp"><strong>検証:</strong></div></div>
+    <nav class="toc" aria-label="目次">
+      <span class="toc-title">目次</span>
+      <a href="#section-diagrams">アーキテクチャ図</a>
+      <a href="#section-facts">外部事実</a>
+      <a href="#section-conclusions">設計結論</a>
+      <a href="#section-matrix">検証マトリクス</a>
+      <a href="#section-final">最終結論</a>
+      <a href="#section-glossary">用語集</a>
+    </nav>
   </div>
 </header>
 
-<div class="filterbar">
-  <div class="wrap">
-    <fieldset class="fgroup" id="filter-status"><legend>検証ステータス</legend></fieldset>
-    <fieldset class="fgroup" id="filter-kind">
-      <legend>種別</legend>
-      <label class="chk"><input type="checkbox" class="f-kind" value="external_fact" checked> 外部事実</label>
-      <label class="chk"><input type="checkbox" class="f-kind" value="conclusion" checked> 設計結論</label>
-    </fieldset>
-    <output id="result-count" role="status" aria-live="polite"></output>
-  </div>
-</div>
-
 <main class="wrap">
+  <section id="section-diagrams">
+    <h2>アーキテクチャ図</h2>
+    <p class="sec-desc">このデータシステムの論理構造を4枚で示します — <strong>図1 全体像（平面の積層）</strong> → <strong>図2 データと権限の2つの流れ</strong> → <strong>図3 鍵管理</strong> → <strong>図4 他院共有と利活用</strong>。各要素にカーソル（またはキーボードでフォーカス）を合わせると補足が出ます。色は <span style="color:var(--c-verified);font-weight:700">緑=データ/オフチェーン</span>・<span style="color:var(--accent);font-weight:700">青=台帳/信頼・権限</span>・<span style="color:var(--kind-conclusion);font-weight:700">紫=鍵・暗号</span>・<span style="color:var(--c-caution);font-weight:700">橙=規制</span> を表します。</p>
+
+    <div class="diagram">
+      <h3>図1: システム全体像 — 3つの平面とその周辺</h3>
+      <p class="cap">ブロックチェーンは「保存場所」ではなく信頼・統制レイヤー。実データ（データ平面）／台帳（信頼平面）／鍵（アクセス平面）を分離し、相互運用（FHIR）・利活用・横断的な規制が取り囲む。各平面の要素にカーソルで補足。</p>
+      <svg viewBox="0 0 760 524" role="img" aria-labelledby="d1desc">
+        <desc id="d1desc">EHRデータシステムの全体像。上から、利用者（患者・病院・他院・研究/LLM）、利活用平面、信頼・統制平面（ブロックチェーン台帳）、鍵・アクセス平面、相互運用境界（FHIRブリッジ・既存EHR接続）、データ平面（オフチェーンの暗号化実データ）が積層し、右側に横断的な統制・規制（厚労省ガイドライン・同意設計・GDPR/EDPB）が走る。</desc>
+
+        <!-- 規制レール（横断・背景） -->
+        <rect class="svg-rail tipnode" x="612" y="64" width="134" height="388" rx="10" data-tip="統制・規制は全平面に横断的にかかる。厚労省ガイドライン（F1）を基準に、同意設計・GDPR/EDPB（個人データを台帳に載せない根拠）への適合が前提。"/>
+        <text class="svg-tt" x="679" y="88" text-anchor="middle">統制・規制</text>
+        <text class="svg-ts" x="679" y="105" text-anchor="middle">（横断）</text>
+        <line class="svg-dash" x1="624" y1="118" x2="734" y2="118"/>
+        <text class="svg-t" x="679" y="150" text-anchor="middle">厚労省GL</text>
+        <text class="svg-ts" x="679" y="167" text-anchor="middle">F1 安全管理基準</text>
+        <text class="svg-t" x="679" y="222" text-anchor="middle">同意設計</text>
+        <text class="svg-ts" x="679" y="239" text-anchor="middle">IC / オプトアウト</text>
+        <text class="svg-t" x="679" y="300" text-anchor="middle">GDPR・EDPB</text>
+        <text class="svg-ts" x="679" y="317" text-anchor="middle">個人データは</text>
+        <text class="svg-ts" x="679" y="332" text-anchor="middle">台帳に載せない</text>
+
+        <!-- アクター行 -->
+        <rect class="svg-box tipnode" x="14" y="14" width="136" height="44" rx="8" data-tip="患者：データへのアクセスを誰に許可するかを決める権限の主体。"/>
+        <text class="svg-t" x="82" y="33" text-anchor="middle" font-weight="700">患者</text>
+        <text class="svg-ts" x="82" y="49" text-anchor="middle">権限主体</text>
+        <rect class="svg-box tipnode" x="162" y="14" width="136" height="44" rx="8" data-tip="病院：データを保管・運用する主体。HSMで鍵を保護し、署名・復号を担う。"/>
+        <text class="svg-t" x="230" y="33" text-anchor="middle" font-weight="700">病院</text>
+        <text class="svg-ts" x="230" y="49" text-anchor="middle">保管・運用</text>
+        <rect class="svg-box tipnode" x="310" y="14" width="136" height="44" rx="8" data-tip="他院：診療情報の提供を一時的に受ける側。常時クラスターに参加しなくてよい（C8）。"/>
+        <text class="svg-t" x="378" y="33" text-anchor="middle" font-weight="700">他院</text>
+        <text class="svg-ts" x="378" y="49" text-anchor="middle">一時受領</text>
+        <rect class="svg-box tipnode" x="458" y="14" width="136" height="44" rx="8" data-tip="研究者・LLM：患者同意のもと仮名化されたデータを研究・AI学習に活用する（C11）。"/>
+        <text class="svg-t" x="526" y="33" text-anchor="middle" font-weight="700">研究者・LLM</text>
+        <text class="svg-ts" x="526" y="49" text-anchor="middle">利活用</text>
+
+        <!-- 利活用平面 -->
+        <rect class="svg-plane" x="14" y="66" width="586" height="72" rx="10"/>
+        <text class="svg-tt" x="28" y="86">利活用平面</text>
+        <text class="svg-ts" x="118" y="86">— 標準化データ基盤の価値（C9）</text>
+        <rect class="svg-val tipnode" x="28" y="96" width="128" height="34" rx="7" data-tip="難解な診療情報を平易に説明し、患者の理解を支援する（C10）。"/>
+        <text class="svg-ts" x="92" y="117" text-anchor="middle">患者向け説明</text>
+        <rect class="svg-val tipnode" x="172" y="96" width="128" height="34" rx="7" data-tip="医師への情報伝達・経時変化の把握など臨床判断を支援（C9）。"/>
+        <text class="svg-ts" x="236" y="117" text-anchor="middle">臨床情報支援</text>
+        <rect class="svg-val tipnode" x="316" y="96" width="128" height="34" rx="7" data-tip="LLMは診断でなく説明支援に限定。復号と推論は安全な計算領域(TEE)に閉じ込めるConfidential Computing（C10）。"/>
+        <text class="svg-ts" x="380" y="117" text-anchor="middle">LLM説明支援</text>
+        <rect class="svg-val tipnode" x="460" y="96" width="128" height="34" rx="7" data-tip="患者同意のもと仮名化し、診療記録＋LLM対話ログを研究・AI学習基盤に（C11。次世代医療基盤法はオプトアウト方式で要注意）。"/>
+        <text class="svg-ts" x="524" y="117" text-anchor="middle">研究・AI学習</text>
+
+        <!-- 信頼・統制平面（台帳） -->
+        <rect class="svg-plane" x="14" y="146" width="586" height="72" rx="10"/>
+        <text class="svg-tt" x="28" y="166">信頼・統制平面</text>
+        <text class="svg-ts" x="142" y="166">— 台帳（ブロックチェーン／スマートコントラクト）C1</text>
+        <rect class="svg-on tipnode" x="28" y="176" width="128" height="34" rx="7" data-tip="患者が誰に何を許可したかという同意の履歴を記録。"/>
+        <text class="svg-ts" x="92" y="197" text-anchor="middle">同意履歴</text>
+        <rect class="svg-on tipnode" x="172" y="176" width="128" height="34" rx="7" data-tip="誰がどのデータにアクセスできるかという権限情報。"/>
+        <text class="svg-ts" x="236" y="197" text-anchor="middle">アクセス権</text>
+        <rect class="svg-on tipnode" x="316" y="176" width="128" height="34" rx="7" data-tip="いつ誰がアクセスしたかの改ざん不能なログ（監査証跡）。"/>
+        <text class="svg-ts" x="380" y="197" text-anchor="middle">監査証跡</text>
+        <rect class="svg-on tipnode" x="460" y="176" width="128" height="34" rx="7" data-tip="実データの参照子CIDのみを台帳に記録する（実データ本体は載せない・C1）。"/>
+        <text class="svg-ts" x="524" y="197" text-anchor="middle">CIDアンカー</text>
+
+        <!-- 鍵・アクセス平面 -->
+        <rect class="svg-plane" x="14" y="226" width="586" height="72" rx="10"/>
+        <text class="svg-tt" x="28" y="246">鍵・アクセス平面</text>
+        <text class="svg-ts" x="160" y="246">— 誰が復号できるか（C3・C4・C5）</text>
+        <rect class="svg-key tipnode" x="28" y="256" width="176" height="34" rx="7" data-tip="誰に復号を許すかは患者が決める。患者を権限主体とするハイブリッド鍵管理（C3）。"/>
+        <text class="svg-ts" x="116" y="277" text-anchor="middle">患者が権限主体</text>
+        <rect class="svg-key tipnode" x="220" y="256" width="176" height="34" rx="7" data-tip="鍵を物理デバイスHSMに閉じ込め、署名・復号のみ実行。鍵はHSMから出ない（C5・F3）。"/>
+        <text class="svg-ts" x="308" y="277" text-anchor="middle">HSM（病院・鍵保護）</text>
+        <rect class="svg-key tipnode" x="412" y="256" width="176" height="34" rx="7" data-tip="MPC・閾値署名・プロキシ再暗号化で秘密鍵を分散。単一主体が完全な鍵を持たない（C4）。"/>
+        <text class="svg-ts" x="500" y="277" text-anchor="middle">MPC・閾値・PRE（分散）</text>
+
+        <!-- 相互運用境界 -->
+        <rect class="svg-plane" x="14" y="306" width="586" height="64" rx="10"/>
+        <text class="svg-tt" x="28" y="326">相互運用境界</text>
+        <text class="svg-ts" x="150" y="326">— FHIRブリッジ（既存を置換しない・C6）</text>
+        <rect class="svg-box tipnode" x="40" y="332" width="200" height="30" rx="7" data-tip="現行の電子カルテ。全面置換せず、ブリッジ層で接続する。"/>
+        <text class="svg-ts" x="140" y="351" text-anchor="middle">既存EHR（レガシー）</text>
+        <path class="svg-line" d="M244,347 L300,347" marker-end="url(#arrow)"/>
+        <rect class="svg-box tipnode" x="304" y="332" width="260" height="30" rx="7" data-tip="既存システムからFHIR形式でデータを出し入れする橋渡し層。SMART on FHIR/OAuthでアプリ認可（C6・F2）。"/>
+        <text class="svg-ts" x="434" y="351" text-anchor="middle">FHIRブリッジ（正規化・API連携）</text>
+
+        <!-- データ平面（オフチェーン） -->
+        <rect class="svg-plane" x="14" y="378" width="586" height="72" rx="10"/>
+        <text class="svg-tt" x="28" y="398">データ平面</text>
+        <text class="svg-ts" x="118" y="398">— オフチェーン（実データ・大容量/秘匿）C2・C7</text>
+        <rect class="svg-off tipnode" x="28" y="408" width="176" height="34" rx="7" data-tip="診療記録は暗号化して保存。復号鍵を持つ者だけが内容を閲覧できる。"/>
+        <text class="svg-ts" x="116" y="429" text-anchor="middle">暗号化FHIRデータ</text>
+        <rect class="svg-off tipnode" x="220" y="408" width="176" height="34" rx="7" data-tip="IPFSや病院サーバで分散保存・冗長化（3ノード以上でランサムウェア耐性）。ピン留めしないと消える点に注意（C2・C7）。"/>
+        <text class="svg-ts" x="308" y="429" text-anchor="middle">IPFS・病院サーバ（冗長）</text>
+        <rect class="svg-off tipnode" x="412" y="408" width="176" height="34" rx="7" data-tip="データ内容から導かれる一意の参照子。台帳はこのCIDだけを指す。"/>
+        <text class="svg-ts" x="500" y="429" text-anchor="middle">CID（参照子）</text>
+
+        <!-- 凡例 -->
+        <rect class="svg-off" x="28" y="470" width="13" height="13" rx="3"/>
+        <text class="svg-ts" x="48" y="481">データ/オフチェーン</text>
+        <rect class="svg-on" x="206" y="470" width="13" height="13" rx="3"/>
+        <text class="svg-ts" x="226" y="481">台帳/信頼・権限</text>
+        <rect class="svg-key" x="356" y="470" width="13" height="13" rx="3"/>
+        <text class="svg-ts" x="376" y="481">鍵・暗号</text>
+        <rect class="svg-rail" x="450" y="470" width="13" height="13" rx="3"/>
+        <text class="svg-ts" x="470" y="481">規制・統制</text>
+        <text class="svg-ts" x="14" y="505">▸ 保存と権限の「流れ」は図2、鍵の分散は図3、共有と利活用は図4で詳説します。</text>
+      </svg>
+    </div>
+
+    <div class="diagram">
+      <h3>図2: データと権限 — 2つの直交する流れ</h3>
+      <p class="cap">分かりにくさの正体は「2つの流れの混在」。<span style="color:var(--c-verified);font-weight:700">①データフロー（保存）</span>＝記録を作って暗号化し、しまい込む。<span style="color:var(--accent);font-weight:700">②権限・信頼フロー（制御）</span>＝同意に基づいて復号を許す。両者は「台帳」と「実データ」で交わる。</p>
+      <svg viewBox="0 0 760 384" role="img" aria-labelledby="d2desc">
+        <desc id="d2desc">上段の緑のデータフローは、記録作成→FHIR正規化→暗号化→オフチェーン保存(CID)→台帳にCIDアンカー、と進む。下段の青の権限フローは、アクセス要求→同意確認(スマートコントラクト)→鍵付与(PRE/閾値)→復号→監査ログを台帳へ、と進む。両者はオフチェーンの実データ（保存と復号）で交わる。</desc>
+
+        <text class="svg-tt" x="24" y="34" style="fill:var(--c-verified)">① データフロー（保存）</text>
+        <text class="svg-ts" x="220" y="34">記録を作り、暗号化してしまい込む</text>
+
+        <rect class="svg-off tipnode" x="24" y="48" width="128" height="56" rx="8" data-tip="診療行為などで電子カルテに記録が生まれる。"/>
+        <text class="svg-num" x="34" y="66">01</text>
+        <text class="svg-ts" x="88" y="82" text-anchor="middle">記録作成</text>
+        <rect class="svg-off tipnode" x="170" y="48" width="128" height="56" rx="8" data-tip="既存EHRのデータをFHIR形式の部品（リソース）に正規化する（C6・F2）。"/>
+        <text class="svg-num" x="180" y="66">02</text>
+        <text class="svg-ts" x="234" y="82" text-anchor="middle">FHIR正規化</text>
+        <rect class="svg-off tipnode" x="316" y="48" width="128" height="56" rx="8" data-tip="記録を暗号化。復号鍵を持つ者だけが内容を読める状態にする。"/>
+        <text class="svg-num" x="326" y="66">03</text>
+        <text class="svg-ts" x="380" y="82" text-anchor="middle">暗号化</text>
+        <rect class="svg-off tipnode" x="462" y="48" width="128" height="56" rx="8" data-tip="暗号化データをIPFS/病院サーバに保存し、CID（参照子）を得る（C2）。"/>
+        <text class="svg-num" x="472" y="66">04</text>
+        <text class="svg-ts" x="526" y="78" text-anchor="middle">オフチェーン</text>
+        <text class="svg-ts" x="526" y="93" text-anchor="middle">保存（CID）</text>
+        <rect class="svg-on tipnode" x="608" y="48" width="128" height="56" rx="8" data-tip="実データは載せず、参照子CIDだけを台帳にアンカーする（C1）。"/>
+        <text class="svg-num" x="618" y="66">05</text>
+        <text class="svg-ts" x="672" y="78" text-anchor="middle">台帳にCID</text>
+        <text class="svg-ts" x="672" y="93" text-anchor="middle">アンカー</text>
+        <path class="svg-flow-data" d="M152,76 L168,76" marker-end="url(#arrow-data)"/>
+        <path class="svg-flow-data" d="M298,76 L314,76" marker-end="url(#arrow-data)"/>
+        <path class="svg-flow-data" d="M444,76 L460,76" marker-end="url(#arrow-data)"/>
+        <path class="svg-flow-data" d="M590,76 L606,76" marker-end="url(#arrow-data)"/>
+
+        <text class="svg-tt" x="24" y="356" style="fill:var(--accent)">② 権限・信頼フロー（制御）</text>
+        <text class="svg-ts" x="250" y="356">同意に基づき復号を許す</text>
+
+        <rect class="svg-on tipnode" x="24" y="278" width="128" height="56" rx="8" data-tip="患者や他院がデータの閲覧を要求する。"/>
+        <text class="svg-num" x="34" y="296">01</text>
+        <text class="svg-ts" x="88" y="312" text-anchor="middle">アクセス要求</text>
+        <rect class="svg-on tipnode" x="170" y="278" width="128" height="56" rx="8" data-tip="台帳のスマートコントラクトが患者の同意・権限を自動で確認する（C1）。"/>
+        <text class="svg-num" x="180" y="296">02</text>
+        <text class="svg-ts" x="234" y="305" text-anchor="middle">同意確認</text>
+        <text class="svg-ts" x="234" y="320" text-anchor="middle">（台帳/SC）</text>
+        <rect class="svg-key tipnode" x="316" y="278" width="128" height="56" rx="8" data-tip="プロキシ再暗号化・閾値署名で、鍵そのものを渡さずに復号権限だけを与える（C4）。"/>
+        <text class="svg-num" x="326" y="296">03</text>
+        <text class="svg-ts" x="380" y="305" text-anchor="middle">鍵付与</text>
+        <text class="svg-ts" x="380" y="320" text-anchor="middle">（PRE/閾値）</text>
+        <rect class="svg-off tipnode" x="462" y="278" width="128" height="56" rx="8" data-tip="付与された権限でオフチェーンの実データを復号して参照する。"/>
+        <text class="svg-num" x="472" y="296">04</text>
+        <text class="svg-ts" x="526" y="312" text-anchor="middle">復号・参照</text>
+        <rect class="svg-on tipnode" x="608" y="278" width="128" height="56" rx="8" data-tip="誰がいつアクセスしたかを改ざん不能な監査証跡として台帳に残す。"/>
+        <text class="svg-num" x="618" y="296">05</text>
+        <text class="svg-ts" x="672" y="305" text-anchor="middle">監査ログ</text>
+        <text class="svg-ts" x="672" y="320" text-anchor="middle">→台帳</text>
+        <path class="svg-flow-perm" d="M152,306 L168,306" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-perm" d="M298,306 L314,306" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-perm" d="M444,306 L460,306" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-perm" d="M590,306 L606,306" marker-end="url(#arrow-perm)"/>
+
+        <!-- 2フローが交わる点 -->
+        <path class="svg-dash" d="M526,104 L526,278"/>
+        <text class="svg-ts" x="536" y="194">④ 同じ実データ</text>
+        <text class="svg-ts" x="536" y="209">（保存↔復号）</text>
+        <path class="svg-dash" d="M672,104 L672,160 L234,160 L234,278"/>
+        <text class="svg-ts" x="453" y="152" text-anchor="middle">同じ台帳（CIDアンカー＋同意・権限・監査を一元管理）</text>
+      </svg>
+    </div>
+
+    <div class="diagram">
+      <h3>図3: ハイブリッド鍵管理 — 患者主権・HSM・分散</h3>
+      <p class="cap">患者を権限主体としつつ、病院はHSMに鍵を閉じ込め署名・復号のみ実行（鍵は外に出ない）。秘密鍵はMPC・閾値署名・プロキシ再暗号化で分散し、単一主体が完全な鍵を持たない（C3・C4・C5）。</p>
+      <svg viewBox="0 0 760 340" role="img" aria-labelledby="d3desc">
+        <desc id="d3desc">患者レーンで同意・権限付与、病院レーンでHSMが鍵を保護し署名・復号のみ実行、台帳レーンで権限と同意を記録する。下部の帯で、秘密鍵はMPC・閾値署名・プロキシ再暗号化により患者・病院・第三者バックアップに分散され、単一主体が完全な鍵を持たないことを示す。</desc>
+        <rect class="svg-box tipnode" x="14" y="14" width="226" height="218" rx="10" data-tip="患者：権限の主体。誰に何のデータを許可するかを決める（C3）。"/>
+        <rect class="svg-box tipnode" x="252" y="14" width="226" height="218" rx="10" data-tip="病院／HSM：鍵を物理デバイスに閉じ込め、署名・復号の処理だけを担う（C5）。"/>
+        <rect class="svg-box tipnode" x="490" y="14" width="256" height="218" rx="10" data-tip="ブロックチェーン台帳：付与された権限と同意を改ざん耐性をもって記録する（C1）。"/>
+        <text class="svg-t" x="127" y="38" text-anchor="middle" font-weight="700">患者（権限主体）</text>
+        <text class="svg-t" x="365" y="38" text-anchor="middle" font-weight="700">病院 / HSM</text>
+        <text class="svg-t" x="618" y="38" text-anchor="middle" font-weight="700">台帳（ブロックチェーン）</text>
+
+        <rect class="svg-on tipnode" x="34" y="64" width="186" height="58" rx="8" data-tip="患者が同意し、アクセス権を付与する操作。"/>
+        <text class="svg-t" x="127" y="89" text-anchor="middle">① 同意・</text>
+        <text class="svg-t" x="127" y="108" text-anchor="middle">権限付与</text>
+        <rect class="svg-key tipnode" x="272" y="64" width="186" height="58" rx="8" data-tip="HSM（耐タンパの物理デバイス）が鍵を内部で保護し、処理のみ実行する（F3）。"/>
+        <text class="svg-t" x="365" y="89" text-anchor="middle">② HSMが鍵を保護</text>
+        <text class="svg-ts" x="365" y="108" text-anchor="middle">署名・復号のみ実行</text>
+        <rect class="svg-off tipnode" x="272" y="146" width="186" height="50" rx="8" data-tip="鍵そのものは外部に取り出せないため、漏洩リスクを大幅に下げられる。"/>
+        <text class="svg-ts" x="365" y="176" text-anchor="middle">秘密鍵はHSMから出ない</text>
+        <rect class="svg-on tipnode" x="512" y="64" width="212" height="58" rx="8" data-tip="付与された権限・同意を台帳に記録する。"/>
+        <text class="svg-t" x="618" y="89" text-anchor="middle">③ 権限・同意を</text>
+        <text class="svg-t" x="618" y="108" text-anchor="middle">記録</text>
+        <path class="svg-flow-perm" d="M222,93 L270,93" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-perm" d="M460,93 L510,93" marker-end="url(#arrow-perm)"/>
+
+        <rect class="svg-key tipnode" x="34" y="252" width="690" height="68" rx="10" data-tip="MPC・閾値署名・プロキシ再暗号化で鍵を分散。単一主体が完全な鍵を持たない設計（C4）。"/>
+        <text class="svg-t" x="379" y="280" text-anchor="middle" font-weight="700">鍵の分散管理 — MPC・閾値署名・プロキシ再暗号化（PRE）</text>
+        <text class="svg-ts" x="379" y="302" text-anchor="middle">患者・病院・第三者バックアップに分割 — 単一主体が完全な鍵を持たない</text>
+      </svg>
+    </div>
+
+    <div class="diagram">
+      <h3>図4: 他院共有とデータ利活用</h3>
+      <p class="cap">上段＝他院への提供（C8）：提供先を常時IPFSクラスターに参加させず、ゲートウェイ経由で暗号化データを渡し、別チャネルでプロキシ再暗号化により復号権限を付与する。下段＝利活用（C9・C10・C11）：標準化された高品質データ基盤が二次価値を生む。</p>
+      <svg viewBox="0 0 760 432" role="img" aria-labelledby="d4desc">
+        <desc id="d4desc">上段は他院共有フロー。患者の同意のもと、提供元病院Aがゲートウェイ経由で暗号化データを提供先病院Bに渡し、別チャネルでプロキシ再暗号化により復号権限を付与する。提供先はクラスターに参加しなくてよい。下段は、標準化された高品質データ基盤から、患者向け説明・臨床情報支援・LLM説明支援(TEE)・研究/AI学習(同意ベース仮名化)という二次価値が生まれることを示す。</desc>
+
+        <text class="svg-tt" x="14" y="22">A. 他院への提供（C8）</text>
+        <g text-anchor="middle">
+          <rect class="svg-box tipnode" x="40" y="34" width="120" height="40" rx="8" data-tip="情報提供に同意を与える主体。"/><text class="svg-t" x="100" y="59">患者</text>
+          <rect class="svg-box tipnode" x="210" y="34" width="120" height="40" rx="8" data-tip="データを保有し提供する側の病院。"/><text class="svg-t" x="270" y="59">提供元病院A</text>
+          <rect class="svg-box tipnode" x="390" y="34" width="120" height="40" rx="8" data-tip="暗号化データの受け渡しを仲介する。内容は見られない。"/><text class="svg-t" x="450" y="59">ゲートウェイ</text>
+          <rect class="svg-box tipnode" x="570" y="34" width="120" height="40" rx="8" data-tip="データを受け取る側。IPFSクラスターに常時参加しなくてよい。"/><text class="svg-t" x="630" y="59">提供先病院B</text>
+        </g>
+        <line class="svg-dash" x1="100" y1="74" x2="100" y2="214"/>
+        <line class="svg-dash" x1="270" y1="74" x2="270" y2="214"/>
+        <line class="svg-dash" x1="450" y1="74" x2="450" y2="214"/>
+        <line class="svg-dash" x1="630" y1="74" x2="630" y2="214"/>
+        <path class="svg-flow-perm" d="M100,100 L268,100" marker-end="url(#arrow-perm)"/>
+        <text class="svg-ts" x="184" y="93" text-anchor="middle">① 提供に同意</text>
+        <path class="svg-flow-data" d="M270,134 L448,134" marker-end="url(#arrow-data)"/>
+        <text class="svg-ts" x="360" y="127" text-anchor="middle">② 暗号化データをCID参照で送出</text>
+        <path class="svg-flow-data" d="M450,168 L628,168" marker-end="url(#arrow-data)"/>
+        <text class="svg-ts" x="540" y="161" text-anchor="middle">③ 暗号化データ取得（クラスター不参加でOK）</text>
+        <path class="svg-flow-perm" d="M270,202 L628,202" marker-end="url(#arrow-perm)"/>
+        <text class="svg-ts" x="449" y="195" text-anchor="middle">④ 別チャネルで復号権限付与（プロキシ再暗号化）</text>
+
+        <line class="svg-dash" x1="14" y1="244" x2="746" y2="244"/>
+        <text class="svg-tt" x="14" y="270">B. データの利活用（C9・C10・C11）</text>
+        <rect class="svg-val tipnode" x="270" y="282" width="220" height="44" rx="8" data-tip="標準化・同意管理され再利用可能な高品質データ基盤こそが本質的価値（C9）。"/>
+        <text class="svg-t" x="380" y="309" text-anchor="middle" font-weight="700">高品質データ基盤</text>
+        <path class="svg-line" d="M310,326 L130,360" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M350,326 L300,360" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M410,326 L470,360" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M450,326 L630,360" marker-end="url(#arrow)"/>
+        <rect class="svg-val tipnode" x="40" y="362" width="160" height="50" rx="8" data-tip="難解な診療情報を平易に説明し患者の理解を支援（C10）。"/>
+        <text class="svg-ts" x="120" y="391" text-anchor="middle">患者向け説明</text>
+        <rect class="svg-val tipnode" x="220" y="362" width="160" height="50" rx="8" data-tip="医師への情報伝達・経時変化の把握（C9）。"/>
+        <text class="svg-ts" x="300" y="391" text-anchor="middle">臨床情報支援</text>
+        <rect class="svg-val tipnode" x="400" y="362" width="160" height="50" rx="8" data-tip="LLMは説明支援に限定。復号と推論はTEEに閉じ込めるConfidential Computing（C10）。"/>
+        <text class="svg-ts" x="480" y="384" text-anchor="middle">LLM説明支援</text>
+        <text class="svg-ts" x="480" y="399" text-anchor="middle">（TEE）</text>
+        <rect class="svg-val tipnode" x="580" y="362" width="160" height="50" rx="8" data-tip="患者同意のもと仮名化し、診療記録＋LLM対話ログを研究・AI学習に（C11）。"/>
+        <text class="svg-ts" x="660" y="384" text-anchor="middle">研究・AI学習</text>
+        <text class="svg-ts" x="660" y="399" text-anchor="middle">（同意・仮名化）</text>
+      </svg>
+    </div>
+  </section>
+
   <section id="section-facts">
     <h2>外部資料で再確認できた事実</h2>
     <p class="sec-desc">原典が「外部資料で確認済み」と位置づける3点。一次資料（厚労省・HL7・NIST）に照らして検証しました。</p>
@@ -209,98 +507,6 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     <h2>過去会話から抽出された設計結論（C1–C11）</h2>
     <p class="sec-desc">原典は外部未検証の「設計結論」と明示。本サイトでは 2024–2026 の学術・規制動向に照らした検証ステータスを付与しています。フィルタで絞り込めます。</p>
     <div class="grid" id="concl-grid"></div>
-  </section>
-
-  <section id="section-diagrams">
-    <h2>アーキテクチャ図</h2>
-    <p class="sec-desc">結論の中核となる3つの構造を図解します。要素にカーソルを合わせると補足が出ます。</p>
-    <div class="diagram">
-      <h3>図1: 2層分離アーキテクチャ（C1・C2・C7）</h3>
-      <p class="cap">実データは暗号化してオフチェーンに保存し、ブロックチェーンには参照子CIDと権限・同意・監査のみを記録する。</p>
-      <svg viewBox="0 0 720 300" role="img" aria-labelledby="d1d">
-        <desc id="d1d">上段のオフチェーン層に暗号化した診療記録の実データ（IPFS/病院サーバー）とCIDを置き、下段のオンチェーン層には同意履歴・アクセス権・監査証跡・CID記録のみを置く。実データはブロックチェーンに載らない。</desc>
-        <rect class="svg-off tipnode" x="10" y="15" width="700" height="120" rx="10" data-tip="オフチェーン層：実データ（診療記録）を保管する領域。大容量で秘匿性が高い情報はブロックチェーンに載せない。"/>
-        <text class="svg-t" x="26" y="40" font-weight="700">オフチェーン層 — 実データ（大容量・秘匿）</text>
-        <rect class="svg-box tipnode" x="34" y="56" width="190" height="60" rx="8" data-tip="診療記録は暗号化して保存。復号鍵を持つ者だけが内容を閲覧できる。"/>
-        <text class="svg-t" x="129" y="81" text-anchor="middle">暗号化された</text>
-        <text class="svg-t" x="129" y="100" text-anchor="middle">診療記録</text>
-        <rect class="svg-box tipnode" x="264" y="56" width="190" height="60" rx="8" data-tip="IPFS（分散ファイルシステム）や病院サーバーで冗長保存。ただしピン留めしないとデータが消える点に注意。"/>
-        <text class="svg-t" x="359" y="81" text-anchor="middle">IPFS / 病院サーバー</text>
-        <text class="svg-ts" x="359" y="100" text-anchor="middle">分散保存・冗長化</text>
-        <rect class="svg-box tipnode" x="494" y="56" width="190" height="60" rx="8" data-tip="CID（Content Identifier）：データ内容から導かれる一意の参照子。実データの所在を指すポインタ。"/>
-        <text class="svg-t" x="589" y="81" text-anchor="middle">CID（参照子）</text>
-        <text class="svg-ts" x="589" y="100" text-anchor="middle">データの所在を指す</text>
-        <rect class="svg-on tipnode" x="10" y="165" width="700" height="120" rx="10" data-tip="オンチェーン層：改ざん耐性を持つ台帳。軽量なメタ情報だけを記録し、実データ本体は置かない。"/>
-        <text class="svg-t" x="26" y="190" font-weight="700">オンチェーン層 — 台帳（改ざん耐性）</text>
-        <rect class="svg-box tipnode" x="34" y="208" width="150" height="58" rx="8" data-tip="患者が誰に何を許可したかという同意の履歴を記録。"/>
-        <text class="svg-t" x="109" y="242" text-anchor="middle">同意履歴</text>
-        <rect class="svg-box tipnode" x="204" y="208" width="150" height="58" rx="8" data-tip="誰がどのデータにアクセスできるかという権限情報。"/>
-        <text class="svg-t" x="279" y="242" text-anchor="middle">アクセス権</text>
-        <rect class="svg-box tipnode" x="374" y="208" width="150" height="58" rx="8" data-tip="いつ誰がアクセスしたかの改ざん不能なログ（監査証跡）。"/>
-        <text class="svg-t" x="449" y="242" text-anchor="middle">監査証跡</text>
-        <rect class="svg-box tipnode" x="544" y="208" width="140" height="58" rx="8" data-tip="実データの参照子CIDのみを台帳に記録する（実データ本体は載せない）。"/>
-        <text class="svg-t" x="614" y="242" text-anchor="middle">CID記録</text>
-        <path class="svg-dash" d="M589,118 L614,206" marker-end="url(#arrow)"/>
-        <text class="svg-ts" x="498" y="155">↓ CIDと権限のみ記録</text>
-      </svg>
-    </div>
-
-    <div class="diagram">
-      <h3>図2: ハイブリッド鍵管理フロー（C3・C4・C5）</h3>
-      <p class="cap">患者が権限主体。病院はHSMに鍵を閉じ込め署名・復号処理のみ実行し、秘密鍵はMPC・閾値署名で分散する（一箇所に完全な鍵を置かない）。</p>
-      <svg viewBox="0 0 720 320" role="img" aria-labelledby="d2d">
-        <desc id="d2d">患者レーンで同意・権限付与、病院レーンでHSMが鍵を保護し署名・復号のみ実行、台帳レーンで権限と同意を記録する。秘密鍵はMPC・閾値署名で患者・病院・第三者に分散される。</desc>
-        <rect class="svg-box tipnode" x="10" y="15" width="225" height="230" rx="10" data-tip="患者：権限の主体。誰に何のデータを許可するかを決める。"/>
-        <rect class="svg-box tipnode" x="247" y="15" width="225" height="230" rx="10" data-tip="病院／HSM：鍵を物理デバイスに閉じ込め、署名・復号の処理だけを担う。"/>
-        <rect class="svg-box tipnode" x="484" y="15" width="226" height="230" rx="10" data-tip="ブロックチェーン台帳：付与された権限と同意を改ざん耐性をもって記録する。"/>
-        <text class="svg-t" x="122" y="40" text-anchor="middle" font-weight="700">患者（権限主体）</text>
-        <text class="svg-t" x="359" y="40" text-anchor="middle" font-weight="700">病院 / HSM</text>
-        <text class="svg-t" x="597" y="40" text-anchor="middle" font-weight="700">台帳（ブロックチェーン）</text>
-        <rect class="svg-on tipnode" x="32" y="70" width="180" height="60" rx="8" data-tip="患者が同意し、アクセス権を付与する操作。"/>
-        <text class="svg-t" x="122" y="95" text-anchor="middle">① 同意・</text>
-        <text class="svg-t" x="122" y="114" text-anchor="middle">権限付与</text>
-        <rect class="svg-on tipnode" x="269" y="70" width="180" height="60" rx="8" data-tip="HSM（耐タンパの物理デバイス）が鍵を内部で保護し、処理のみ実行する。"/>
-        <text class="svg-t" x="359" y="95" text-anchor="middle">② HSMが鍵を保護</text>
-        <text class="svg-ts" x="359" y="114" text-anchor="middle">署名・復号のみ実行</text>
-        <rect class="svg-off tipnode" x="269" y="150" width="180" height="52" rx="8" data-tip="鍵そのものは外部に取り出せないため、漏洩リスクを大幅に下げられる。"/>
-        <text class="svg-ts" x="359" y="180" text-anchor="middle">秘密鍵はHSMから出ない</text>
-        <rect class="svg-on tipnode" x="506" y="70" width="182" height="60" rx="8" data-tip="付与された権限・同意を台帳に記録する。"/>
-        <text class="svg-t" x="597" y="95" text-anchor="middle">③ 権限・同意を</text>
-        <text class="svg-t" x="597" y="114" text-anchor="middle">記録</text>
-        <path class="svg-line" d="M214,100 L267,100" marker-end="url(#arrow)"/>
-        <path class="svg-line" d="M451,100 L504,100" marker-end="url(#arrow)"/>
-        <rect class="svg-box tipnode" x="32" y="262" width="656" height="44" rx="8" data-tip="MPC・閾値署名・プロキシ再暗号化で鍵を分散。単一主体が完全な鍵を持たない設計。"/>
-        <text class="svg-ts" x="359" y="289" text-anchor="middle">MPC・閾値署名・プロキシ再暗号化で鍵を分散管理（患者・病院・第三者バックアップ）— 単一主体が完全な鍵を持たない</text>
-      </svg>
-    </div>
-
-    <div class="diagram">
-      <h3>図3: 他院への診療情報提供フロー（C8）</h3>
-      <p class="cap">提供先を常時IPFSクラスターに参加させず、ゲートウェイ経由で暗号化データを取得し、別チャネルでプロキシ再暗号化により復号権限を付与する。</p>
-      <svg viewBox="0 0 720 330" role="img" aria-labelledby="d3d">
-        <desc id="d3d">患者の同意のもと、提供元病院がゲートウェイ経由で暗号化データを提供先病院に渡し、別チャネルでプロキシ再暗号化により復号権限を付与する。提供先はクラスターに参加しなくてよい。</desc>
-        <g text-anchor="middle">
-          <rect class="svg-box tipnode" x="40" y="15" width="120" height="42" rx="8" data-tip="情報提供に同意を与える主体。"/><text class="svg-t" x="100" y="41">患者</text>
-          <rect class="svg-box tipnode" x="210" y="15" width="120" height="42" rx="8" data-tip="データを保有し提供する側の病院。"/><text class="svg-t" x="270" y="41">提供元病院A</text>
-          <rect class="svg-box tipnode" x="390" y="15" width="120" height="42" rx="8" data-tip="暗号化データの受け渡しを仲介する。内容は見られない。"/><text class="svg-t" x="450" y="41">ゲートウェイ</text>
-          <rect class="svg-box tipnode" x="570" y="15" width="120" height="42" rx="8" data-tip="データを受け取る側。IPFSクラスターに常時参加しなくてよい。"/><text class="svg-t" x="630" y="41">提供先病院B</text>
-        </g>
-        <line class="svg-dash" x1="100" y1="57" x2="100" y2="315"/>
-        <line class="svg-dash" x1="270" y1="57" x2="270" y2="315"/>
-        <line class="svg-dash" x1="450" y1="57" x2="450" y2="315"/>
-        <line class="svg-dash" x1="630" y1="57" x2="630" y2="315"/>
-        <path class="svg-line" d="M100,95 L270,95" marker-end="url(#arrow)"/>
-        <text class="svg-ts" x="185" y="88" text-anchor="middle">① 提供に同意</text>
-        <path class="svg-line" d="M270,140 L450,140" marker-end="url(#arrow)"/>
-        <text class="svg-ts" x="360" y="133" text-anchor="middle">② 暗号化データをCID参照で送出</text>
-        <path class="svg-line" d="M450,185 L630,185" marker-end="url(#arrow)"/>
-        <text class="svg-ts" x="540" y="178" text-anchor="middle">③ 暗号化データ取得（クラスター不参加でOK）</text>
-        <path class="svg-line" d="M270,240 L630,240" marker-end="url(#arrow)"/>
-        <text class="svg-ts" x="450" y="233" text-anchor="middle">④ 別チャネルで復号権限付与（プロキシ再暗号化）</text>
-        <rect class="svg-on tipnode" x="572" y="262" width="116" height="44" rx="8" data-tip="付与された権限で復号し、必要なときだけ内容を参照する。"/>
-        <text class="svg-ts" x="630" y="289" text-anchor="middle">⑤ 復号して参照</text>
-      </svg>
-    </div>
   </section>
 
   <section id="section-matrix">
@@ -339,6 +545,12 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--text-sub)"/>
+    </marker>
+    <marker id="arrow-perm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrow-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--c-verified)"/>
     </marker>
   </defs>
 </svg>
@@ -618,45 +830,9 @@ footer{border-top:1px solid var(--border); margin-top:2rem; padding:1.4rem 0 2.4
     +'<p style="color:var(--text-sub)"><strong>検証総括:</strong> '+assH+'</p>'
     +'<div class="keywarn"><strong>⚠ 特に注意すべき3点:</strong><ul>'+warns+'</ul></div>';
 
-  // status filter UI (only statuses present in data)
-  var present = {};
-  DATA.externalFacts.concat(DATA.conclusions).forEach(function(i){ present[i.verificationStatus]=true; });
-  var order = ['verified','verified_caution','partial','caution','unverifiable','pending'];
-  var fsHtml='', lgHtml='';
-  order.forEach(function(s){
-    if(!present[s]) return;
-    var b=BADGE[s];
-    fsHtml += '<label class="chk"><input type="checkbox" class="f-status" value="'+s+'" checked> '+b.icon+' '+b.label+'</label>';
-    lgHtml += badge(s);
-  });
-  document.getElementById('filter-status').insertAdjacentHTML('beforeend', fsHtml);
-  document.querySelector('#legend-status .grp').insertAdjacentHTML('beforeend', lgHtml);
+  // フィルタ機能は廃止（全カードを常時表示）
 
-  function applyFilters(){
-    var st = [].slice.call(document.querySelectorAll('.f-status:checked')).map(function(e){return e.value;});
-    var kd = [].slice.call(document.querySelectorAll('.f-kind:checked')).map(function(e){return e.value;});
-    var n=0;
-    [].slice.call(document.querySelectorAll('#facts-grid .card, #concl-grid .card')).forEach(function(c){
-      var show = st.indexOf(c.dataset.status)>=0 && kd.indexOf(c.dataset.kind)>=0;
-      c.hidden = !show; if(show) n++;
-    });
-    document.getElementById('result-count').textContent = n>0 ? n+' 件を表示中' : '条件に一致するカードがありません（フィルタを見直してください）';
-  }
-  [].slice.call(document.querySelectorAll('.f-status, .f-kind')).forEach(function(e){ e.addEventListener('change', applyFilters); });
-  applyFilters();
-
-  // theme toggle
-  var tbtn = document.getElementById('theme-toggle');
-  function applyThemeLabel(t){
-    tbtn.innerHTML = '<span aria-hidden="true">'+(t==='dark'?'☀':'🌙')+'</span> '+(t==='dark'?'ライト':'ダーク');
-    tbtn.setAttribute('aria-label', (t==='dark'?'ライト':'ダーク')+'テーマに切り替え');
-  }
-  applyThemeLabel(document.documentElement.getAttribute('data-theme')||'light');
-  tbtn.addEventListener('click', function(){
-    var next = document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    applyThemeLabel(next);
-  });
+  // テーマ切替は廃止（常時ライトモード）
 
   // glossary render
   var CAT_LABELS = {standard:'標準・規格・組織',regulation:'規制・法制度',blockchain:'ブロックチェーン・台帳',storage:'分散ストレージ',crypto:'暗号・鍵管理',ai:'AI・計算基盤'};
