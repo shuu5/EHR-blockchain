@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <title>電子カルテ×ブロックチェーン — 設計結論と検証ステータス</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔗</text></svg>">
-<script>(function(){var d=document.documentElement;if(!d.getAttribute('data-theme')){d.setAttribute('data-theme',(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');}})();</script>
 <style>
 :root{
   /* type system: 日本語は高品質システムサンス、Latinはui書体。技術メタはmonoでドシエ感 */
@@ -26,23 +25,9 @@
   --shadow:0 2px 6px rgba(20,30,55,.08),0 1px 2px rgba(20,30,55,.05);
   --shadow-lg:0 16px 40px -14px rgba(18,32,66,.30),0 5px 14px -7px rgba(18,32,66,.18);
   --radius:14px; --radius-sm:9px;
-  --maxw:1060px;
+  --maxw:1060px; --measure:44rem;
 }
-/* ダーク値は data-theme="dark" の一箇所に集約（初期テーマは <head> のスクリプトがOS設定から設定） */
-:root[data-theme="dark"]{
-  --bg:#0c111b; --surface:#141b29; --surface-2:#1a2334; --surface-3:#212c40;
-  --border:#2a3650; --border-strong:#3a4866;
-  --text:#e7ecf5; --text-sub:#9aa7bd; --text-faint:#6c7a93;
-  --link:#79afff; --accent:#79afff; --accent-ink:#aecdff;
-  --c-verified:#4cc873; --c-verified_caution:#dcb24e; --c-partial:#e69b4d;
-  --c-caution:#f08a4f; --c-unverifiable:#f56a6a; --c-pending:#9aa7bd;
-  --kind-fact:#79afff; --kind-conclusion:#b083ff;
-  --onchain:#15243f; --onchain-bd:#33507f; --offchain:#11301f; --offchain-bd:#2d6a46;
-  --dot:rgba(150,180,230,.055);
-  --shadow-sm:0 1px 2px rgba(0,0,0,.42);
-  --shadow:0 2px 7px rgba(0,0,0,.45);
-  --shadow-lg:0 18px 44px -14px rgba(0,0,0,.62),0 5px 16px -7px rgba(0,0,0,.5);
-}
+/* テーマはライト固定（ダークモード・テーマ切替は廃止） */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
@@ -75,29 +60,22 @@ header.top::before{content:""; position:absolute; inset:0 0 auto 0; height:3px; 
 .eyebrow{margin:0 0 .6rem; font-family:var(--mono); font-size:.72rem; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-ink); display:inline-flex; align-items:center; gap:.5rem}
 .eyebrow::before{content:"◆"; font-size:.62em; opacity:.65}
 header.top h1{margin:.1rem 0 .65rem; font-weight:800; font-size:clamp(1.5rem,1rem + 2.4vw,2.3rem); letter-spacing:.004em}
-.lead{color:var(--text-sub); margin:.3rem 0 1.2rem; max-width:60ch; font-size:clamp(.92rem,.88rem + .3vw,1.02rem)}
+.lead{color:var(--text-sub); margin:.3rem 0 1.4rem; max-width:var(--measure); font-size:clamp(.92rem,.88rem + .3vw,1.02rem)}
 .lead strong{color:var(--text)}
-.toolbar{display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-bottom:.2rem}
-.btn{display:inline-flex; align-items:center; gap:.4rem; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); border-radius:999px; padding:.5rem .95rem; font-size:.85rem; font-weight:600; cursor:pointer; box-shadow:var(--shadow-sm); transition:border-color .15s,box-shadow .15s,transform .1s}
-.btn:hover{border-color:var(--accent); box-shadow:var(--shadow)}
-.btn:active{transform:translateY(1px)}
-.toc{display:flex; gap:.42rem; flex-wrap:wrap; align-items:center; margin-top:0; font-size:.82rem}
-.toc a{text-decoration:none; color:var(--text-sub); font-weight:500; padding:.42rem .72rem; border:1px solid var(--border); border-radius:999px; background:var(--surface); transition:color .15s,border-color .15s,background .15s}
-.toc a:hover{color:var(--accent); border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
 
-/* legend */
-.legend{display:flex; gap:.7rem 1.4rem; flex-wrap:wrap; margin:.95rem 0 0; font-size:.8rem; color:var(--text-sub)}
-.legend .grp{display:flex; gap:.45rem; align-items:center; flex-wrap:wrap}
-.legend strong{font-family:var(--mono); font-size:.68rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)}
-.src-chip{display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem; border-radius:7px; border:1px solid var(--border); background:var(--surface)}
-.src-chip.fact{border-left:4px solid var(--kind-fact)}
-.src-chip.conclusion{border-left:4px solid var(--kind-conclusion)}
+/* index (目次): 番号付きで一覧性を明確化 */
+.toc{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-top:.2rem; counter-reset:toc}
+.toc-title{font-family:var(--mono); font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin-right:.3rem}
+.toc-title::before{content:"❯"; color:var(--accent); margin-right:.4em}
+.toc a{display:inline-flex; align-items:baseline; gap:.45rem; text-decoration:none; color:var(--text); font-weight:600; font-size:.83rem; padding:.45rem .8rem; border:1px solid var(--border); border-radius:9px; background:var(--surface); box-shadow:var(--shadow-sm); transition:color .15s,border-color .15s,background .15s,transform .1s}
+.toc a::before{counter-increment:toc; content:counter(toc,decimal-leading-zero); font-family:var(--mono); font-size:.82em; font-weight:700; color:var(--accent)}
+.toc a:hover{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); transform:translateY(-1px)}
 
 /* section */
 section{padding:clamp(1.7rem,4vw,2.4rem) 0 .6rem; scroll-margin-top:4.6rem}
 section>h2{font-size:clamp(1.18rem,1rem + .8vw,1.5rem); font-weight:800; margin:.2rem 0 .4rem; display:flex; align-items:center; gap:.6rem}
 section>h2::before{content:""; width:.5rem; height:1.05em; border-radius:3px; background:linear-gradient(var(--accent),var(--kind-conclusion)); flex:none}
-.sec-desc{color:var(--text-sub); font-size:.92rem; margin:.1rem 0 1.2rem; max-width:70ch; line-height:1.75}
+.sec-desc{color:var(--text-sub); font-size:.92rem; margin:.1rem 0 1.2rem; max-width:var(--measure); line-height:1.75}
 
 /* filter */
 .filterbar{position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--bg) 80%,transparent); backdrop-filter:blur(12px) saturate(1.5); -webkit-backdrop-filter:blur(12px) saturate(1.5); border-bottom:1px solid var(--border); padding:.7rem 0}
@@ -194,7 +172,7 @@ table.matrix tr:last-child td{border-bottom:none}
 /* diagrams */
 .diagram{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.2rem; margin:0 0 1.3rem; box-shadow:var(--shadow-sm)}
 .diagram h3{margin:.1rem 0 .25rem; font-size:1.02rem; font-weight:800}
-.diagram p.cap{color:var(--text-sub); font-size:.85rem; margin:.1rem 0 .9rem; max-width:74ch; line-height:1.7}
+.diagram p.cap{color:var(--text-sub); font-size:.85rem; margin:.1rem 0 .9rem; max-width:var(--measure); line-height:1.7}
 .diagram svg{width:100%; height:auto; display:block; max-width:760px; margin:0 auto}
 .svg-box{fill:var(--surface); stroke:var(--border)}
 .svg-on{fill:var(--onchain); stroke:var(--onchain-bd)}
@@ -212,7 +190,7 @@ rect.tipnode:hover,rect.tipnode:focus{stroke:var(--accent); stroke-width:2.5; ou
 /* final */
 .final{position:relative; overflow:hidden; background:linear-gradient(180deg,var(--surface),var(--surface-2)); border:1px solid var(--border); border-radius:var(--radius); padding:1.3rem 1.4rem 1.3rem 1.6rem; box-shadow:var(--shadow)}
 .final::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:linear-gradient(var(--accent),var(--kind-conclusion))}
-.final>p{max-width:80ch}
+.final>p{max-width:var(--measure)}
 .final>p:first-child{font-size:1.02rem; line-height:1.9}
 .final ol{margin:.5rem 0; padding-left:1.3rem}
 .final li{margin:.4rem 0}
@@ -222,7 +200,7 @@ rect.tipnode:hover,rect.tipnode:focus{stroke:var(--accent); stroke-width:2.5; ou
 .keywarn li{margin:.35rem 0}
 
 footer{border-top:1px solid var(--border); margin-top:2.5rem; padding:1.6rem 0 2.8rem; color:var(--text-sub); font-size:.83rem; line-height:1.75}
-footer p{max-width:82ch}
+footer p{max-width:var(--measure)}
 footer code{font-size:.82em}
 .skip{position:absolute; left:-999px}
 .skip:focus{left:1rem; top:1rem; background:var(--surface); padding:.5rem .8rem; z-index:100; border:1px solid var(--accent); border-radius:8px}
@@ -231,7 +209,7 @@ footer code{font-size:.82em}
 @media(max-width:720px){
   .filterbar{position:static; backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--surface-2)}
   .filterbar .wrap{gap:.55rem 1rem}
-  .toc a,.btn{padding:.55rem .85rem}
+  .toc a{padding:.55rem .85rem}
   .chk{padding:.46rem .72rem}
   section{scroll-margin-top:1rem}
   .card-kind{margin-left:0}
@@ -247,7 +225,6 @@ footer code{font-size:.82em}
 }
 @media(prefers-contrast:more){
   :root{--border:#98a6b8; --border-strong:#7b8a9d; --text-sub:#3b4859}
-  :root[data-theme="dark"]{--border:#52617c; --border-strong:#6a7b97; --text-sub:#b4c0d4}
   .card,.gloss-cat,.diagram,.matrix-wrap{border-width:1.5px}
 }
 </style>
@@ -260,24 +237,15 @@ footer code{font-size:.82em}
     <p class="eyebrow">EHR &times; Blockchain 設計検証</p>
     <h1>電子カルテ × ブロックチェーン<br>— 設計結論と検証ステータス</h1>
     <p class="lead">過去の検討から到達した最終結論を、<strong>情報源の区分</strong>（外部で確認できた事実 / 過去会話由来の設計結論）と、<strong>2024–2026 の最新文献による検証ステータス</strong>を添えて整理したものです。各カードを開くと根拠と出典を確認できます。</p>
-    <div class="toolbar">
-      <button class="btn" id="theme-toggle" aria-label="テーマ切替">🌓 テーマ</button>
-      <nav class="toc" aria-label="目次">
-        <a href="#section-facts">外部事実</a>
-        <a href="#section-conclusions">設計結論11</a>
-        <a href="#section-diagrams">アーキ図</a>
-        <a href="#section-matrix">検証マトリクス</a>
-        <a href="#section-final">最終結論</a>
-        <a href="#section-glossary">用語集</a>
-      </nav>
-    </div>
-    <div class="legend">
-      <div class="grp"><strong>情報源:</strong>
-        <span class="src-chip fact">外部事実（一次資料で確認）</span>
-        <span class="src-chip conclusion">設計結論（過去会話由来）</span>
-      </div>
-    </div>
-    <div class="legend" id="legend-status"><div class="grp"><strong>検証:</strong></div></div>
+    <nav class="toc" aria-label="目次">
+      <span class="toc-title">目次</span>
+      <a href="#section-facts">外部事実</a>
+      <a href="#section-conclusions">設計結論</a>
+      <a href="#section-diagrams">アーキテクチャ図</a>
+      <a href="#section-matrix">検証マトリクス</a>
+      <a href="#section-final">最終結論</a>
+      <a href="#section-glossary">用語集</a>
+    </nav>
   </div>
 </header>
 
@@ -717,15 +685,13 @@ footer code{font-size:.82em}
   var present = {};
   DATA.externalFacts.concat(DATA.conclusions).forEach(function(i){ present[i.verificationStatus]=true; });
   var order = ['verified','verified_caution','partial','caution','unverifiable','pending'];
-  var fsHtml='', lgHtml='';
+  var fsHtml='';
   order.forEach(function(s){
     if(!present[s]) return;
     var b=BADGE[s];
     fsHtml += '<label class="chk"><input type="checkbox" class="f-status" value="'+s+'" checked> '+b.icon+' '+b.label+'</label>';
-    lgHtml += badge(s);
   });
   document.getElementById('filter-status').insertAdjacentHTML('beforeend', fsHtml);
-  document.querySelector('#legend-status .grp').insertAdjacentHTML('beforeend', lgHtml);
 
   function applyFilters(){
     var st = [].slice.call(document.querySelectorAll('.f-status:checked')).map(function(e){return e.value;});
@@ -740,18 +706,7 @@ footer code{font-size:.82em}
   [].slice.call(document.querySelectorAll('.f-status, .f-kind')).forEach(function(e){ e.addEventListener('change', applyFilters); });
   applyFilters();
 
-  // theme toggle
-  var tbtn = document.getElementById('theme-toggle');
-  function applyThemeLabel(t){
-    tbtn.innerHTML = '<span aria-hidden="true">'+(t==='dark'?'☀':'🌙')+'</span> '+(t==='dark'?'ライト':'ダーク');
-    tbtn.setAttribute('aria-label', (t==='dark'?'ライト':'ダーク')+'テーマに切り替え');
-  }
-  applyThemeLabel(document.documentElement.getAttribute('data-theme')||'light');
-  tbtn.addEventListener('click', function(){
-    var next = document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    applyThemeLabel(next);
-  });
+  // テーマ切替は廃止（常時ライトモード）
 
   // glossary render
   var CAT_LABELS = {standard:'標準・規格・組織',regulation:'規制・法制度',blockchain:'ブロックチェーン・台帳',storage:'分散ストレージ',crypto:'暗号・鍵管理',ai:'AI・計算基盤'};
