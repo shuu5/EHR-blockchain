@@ -45,5 +45,6 @@
 
 ## git 運用
 
-- ローカル git のみ（リモート未設定）。push はリモート設定後。
-- ファイル編集後は `git` スキル経由でコミット（ユーザーが「コミットしないで」と言った場合・編集未完了時を除く）。
+- GitHub 公開済み: リポジトリ <https://github.com/shuu5/EHR-blockchain>（`main` / `origin`）。
+- 公開ページ: <https://shuu5.github.io/EHR-blockchain/>（GitHub Pages）。`.github/workflows/deploy-pages.yml` が `site/` を自動デプロイし、`main` への push で再デプロイされる。
+- ファイル編集後は `git` スキル経由でコミット → `git push`（ユーザーが「コミットしないで」と言った場合・編集未完了時を除く）。
