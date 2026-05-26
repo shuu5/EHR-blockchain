@@ -749,7 +749,77 @@ footer a{font-weight:600}
     { "term": "GDPR", "full": "General Data Protection Regulation", "cat": "regulation", "desc": "EUの一般データ保護規則。Art.9健康データ・Art.22自動判断・Art.17削除権が本テーマに直結。" },
     { "term": "EDPB", "full": "European Data Protection Board", "cat": "regulation", "desc": "GDPRの統一解釈を示すEU機関。Guidelines 02/2025でブロックチェーンの個人データ処理指針を示した。" },
     { "term": "次世代医療基盤法", "full": "", "cat": "regulation", "desc": "日本の法律。オプトアウト方式で医療情報を仮名加工し研究等に活用できるが、対象は認定事業者の研究開発目的に限られ、リアルタイム診療支援には不適用。" },
-    { "term": "ZDR", "full": "Zero Data Retention", "cat": "regulation", "desc": "入力・出力を保持しない運用契約・エンドポイント。外部API利用時のPHI保護に用いる。" }
+    { "term": "ZDR", "full": "Zero Data Retention", "cat": "regulation", "desc": "入力・出力を保持しない運用契約・エンドポイント。外部API利用時のPHI保護に用いる。" },
+
+    { "term": "NER", "full": "Named Entity Recognition", "cat": "retrieval", "desc": "固有表現抽出。テキストから人名・病名・薬剤名などの固有表現を機械的に抜き出す自然言語処理技術。CLEARの第一段階。" },
+    { "term": "regex", "full": "正規表現", "cat": "retrieval", "desc": "文字列のパターンを記述して一致箇所を抜き出す記法。CLEARが数値・コードの構造的抽出に用いる。" },
+    { "term": "オントロジー", "full": "ontology", "cat": "retrieval", "desc": "概念と概念間の関係を体系化した語彙集。CLEARはNERで得た語をオントロジーで同義語・上位語へ拡張する。" },
+    { "term": "dense hybrid", "full": "", "cat": "retrieval", "desc": "ベクトル検索(dense)と語彙検索(BM25)を併用しrerankingで統合する方式。大量の非構造化文書に有効。" },
+    { "term": "LLMonFHIR", "full": "", "cat": "retrieval", "desc": "FHIRデータをLLMに解釈させるシステム(JACC 2025)。論文中の「RAG」はベクトル検索でなくfunction callingを指す。" },
+    { "term": "FHIR-AgentBench", "full": "", "cat": "retrieval", "desc": "FHIR上のLLMエージェントを評価するベンチマーク(Verily/KAIST/MIT)。ベクトルRAGは評価対象外とされた。" },
+    { "term": "EHR-MCP", "full": "", "cat": "retrieval", "desc": "MCP経由でEHRに決定論的クエリ(SQL等)を投げる構成。数値の正確さで優位。" },
+
+    { "term": "PII", "full": "Personally Identifiable Information", "cat": "security", "desc": "個人識別情報。単体または組合せで特定の個人を識別できる情報。取得カルテ本文がその媒体になりうる。" },
+    { "term": "Jailbreak", "full": "", "cat": "security", "desc": "ジェイルブレイク。安全装置を回避させ、LLMに禁止された応答を引き出す攻撃。" },
+    { "term": "NIST AI RMF", "full": "NIST AI Risk Management Framework", "cat": "security", "desc": "米NISTのAIリスク管理フレームワーク。AIの信頼性を統治・特定・測定・管理する指針。" },
+    { "term": "OWASP LLM Top 10", "full": "", "cat": "security", "desc": "OWASPが公開するLLMアプリの重大リスク10選。間接を含むプロンプトインジェクションが1位。" },
+    { "term": "メンバーシップ推論", "full": "membership inference", "cat": "security", "desc": "あるデータがモデルの学習に使われたかを推定する攻撃。差分プライバシーで緩和する。" },
+    { "term": "ナレッジベース汚染", "full": "knowledge base poisoning", "cat": "security", "desc": "RAGが参照する知識ベースに悪意ある文書を混入させ、出力を操作する攻撃。" },
+    { "term": "EchoLeak", "full": "CVE-2025-32711", "cat": "security", "desc": "Microsoft 365 Copilotで実証されたゼロクリックの間接プロンプトインジェクション／PII漏洩の脆弱性。" },
+    { "term": "ABAC", "full": "Attribute-Based Access Control", "cat": "security", "desc": "属性ベースアクセス制御。役割・所属・目的などの属性でアクセス可否を動的に判定する方式。" },
+    { "term": "NIST IAL2", "full": "Identity Assurance Level 2", "cat": "security", "desc": "NISTの身元確認保証レベル2。政府ID・生体認証等で本人確認を強化する水準。" },
+    { "term": "MFA", "full": "Multi-Factor Authentication", "cat": "security", "desc": "多要素認証。知識・所持・生体など複数の要素で本人確認を強化する仕組み。" },
+    { "term": "PKCE", "full": "Proof Key for Code Exchange", "cat": "security", "desc": "認可コード横取り攻撃を防ぐOAuth2.0の拡張。公開クライアントの認可を保護する。" },
+
+    { "term": "ECDSA", "full": "Elliptic Curve Digital Signature Algorithm", "cat": "crypto", "desc": "楕円曲線デジタル署名。患者の同意署名などに用いる標準的な電子署名方式。" },
+    { "term": "EUF-CMA", "full": "", "cat": "crypto", "desc": "選択メッセージ攻撃下での存在的偽造不可能性。デジタル署名の標準的な安全性定義。" },
+    { "term": "ECDH", "full": "Elliptic Curve Diffie-Hellman", "cat": "crypto", "desc": "楕円曲線ディフィー・ヘルマン鍵共有。盗聴環境でも安全に共有鍵を確立する。" },
+    { "term": "ML-KEM", "full": "FIPS 203 / 旧Kyber", "cat": "crypto", "desc": "格子ベースの鍵カプセル化機構。耐量子計算機の鍵交換に用いる。" },
+    { "term": "Noise", "full": "Noise Protocol Framework", "cat": "crypto", "desc": "安全な通信路を構築する暗号ハンドシェイクの設計フレームワーク。" },
+    { "term": "KGC", "full": "Key Generation Center", "cat": "crypto", "desc": "鍵生成センター。属性ベース暗号などで秘密鍵を発行する機関。MA-ABEでは複数に分散する。" },
+    { "term": "結託耐性", "full": "collusion resistance", "cat": "crypto", "desc": "複数の参加者が結託しても秘密を復元できない性質。閾値方式でk-1の侵害まで耐える。" },
+    { "term": "エスクローフリー", "full": "escrow-free", "cat": "crypto", "desc": "単一の鍵管理機関が全ての鍵を再構成できない設計。鍵預託の集中リスクを排除する。" },
+    { "term": "フォワードセキュリティ", "full": "forward secrecy", "cat": "crypto", "desc": "長期鍵が将来漏洩しても、過去の通信内容は復号されない性質。" },
+    { "term": "SHA-256", "full": "", "cat": "crypto", "desc": "256ビットの暗号学的ハッシュ関数。カルテ本文のハッシュをオンチェーン記録する等に用いる。" },
+    { "term": "Merkle Root", "full": "マークル木の根", "cat": "crypto", "desc": "多数のハッシュを木構造で集約した根の値。監査ログ全体の改ざんを1つの値で検知できる。" },
+    { "term": "範囲証明", "full": "range proof", "cat": "crypto", "desc": "具体的な値を明かさずに「値がある範囲内にある」ことを証明するゼロ知識証明の一種。" },
+    { "term": "フェデレーション学習", "full": "federated learning", "cat": "crypto", "desc": "生データを集約せず、各拠点で学習しモデル更新のみを共有する分散学習方式。" },
+
+    { "term": "HSM", "full": "Hardware Security Module", "cat": "compute", "desc": "ハードウェアセキュリティモジュール。鍵を耐タンパなハードウェアで生成・保管する装置。" },
+    { "term": "PCR", "full": "Platform Configuration Register", "cat": "compute", "desc": "TEEの起動状態を測定値として保持するレジスタ。アテステーションで期待値と照合する。" },
+    { "term": "MAA", "full": "Microsoft Azure Attestation", "cat": "compute", "desc": "Azureのアテステーション(完全性検証)サービス。SKRの判断材料となるトークンを発行する。" },
+    { "term": "SKR", "full": "Secure Key Release", "cat": "compute", "desc": "アテステーション成功時にのみAzureが鍵を払い出す機構。" },
+    { "term": "SGX", "full": "Intel Software Guard Extensions", "cat": "compute", "desc": "CPU内に隔離領域(enclave)を設けるIntelのTEE実装。" },
+    { "term": "ハイパーバイザ", "full": "hypervisor", "cat": "compute", "desc": "仮想マシンを稼働させる基盤ソフト。TEEはホストやハイパーバイザからも処理中データを守る。" },
+    { "term": "TTFT", "full": "Time To First Token", "cat": "compute", "desc": "最初のトークンが生成されるまでの時間。キャッシュの有無で差が出て、タイミング攻撃の温床になる。" },
+    { "term": "CUDA", "full": "", "cat": "compute", "desc": "NVIDIA GPUの並列計算基盤／API。unified memoryが境界漏洩の経路になりうる。" },
+    { "term": "Intel CAT", "full": "Cache Allocation Technology", "cat": "compute", "desc": "キャッシュをコア間で分割し、キャッシュ型サイドチャネルを緩和するIntelの機能。" },
+    { "term": "HBM", "full": "High Bandwidth Memory", "cat": "compute", "desc": "GPUに搭載される高帯域メモリ。コールドブート攻撃の対象になりうる。" },
+    { "term": "PCIe", "full": "PCI Express", "cat": "compute", "desc": "GPUとCPUを結ぶ高速バス。DMA経由の攻撃面が存在する。" },
+
+    { "term": "IPFS", "full": "InterPlanetary File System", "cat": "standard", "desc": "内容のハッシュ(CID)で参照する分散ファイルシステム。暗号化カルテ本体の保存先候補。" },
+    { "term": "CID", "full": "Content Identifier", "cat": "standard", "desc": "内容のハッシュから一意に決まるIPFSの識別子。オンチェーンにはCIDのみを記録する。" },
+    { "term": "Observation", "full": "FHIRリソース型", "cat": "standard", "desc": "バイタルサインや検査値などの観測結果を表すFHIRのリソース型。" },
+    { "term": "Medication", "full": "FHIRリソース型", "cat": "standard", "desc": "薬剤・処方に関する情報を表すFHIRのリソース型。" },
+    { "term": "Condition", "full": "FHIRリソース型", "cat": "standard", "desc": "診断・病名・問題リストを表すFHIRのリソース型。" },
+    { "term": "DocumentReference", "full": "FHIRリソース型", "cat": "standard", "desc": "退院サマリや紹介状など、非構造化文書への参照を表すFHIRのリソース型。" },
+
+    { "term": "PHI", "full": "Protected Health Information", "cat": "regulation", "desc": "保護対象医療情報。HIPAAが保護する、個人を特定しうる医療・健康情報。" },
+    { "term": "要配慮個人情報", "full": "", "cat": "regulation", "desc": "日本の個人情報保護法で取得・提供に特別な配慮を要する情報。病歴・診療事実が該当する。" },
+    { "term": "個人情報保護法", "full": "", "cat": "regulation", "desc": "日本の個人情報保護の一般法。要配慮個人情報の第三者提供には原則として本人同意が必要。" },
+    { "term": "Art.9", "full": "GDPR第9条", "cat": "regulation", "desc": "健康データを「特別カテゴリ」とし処理を原則禁止、明示的同意等を例外要件とするGDPRの条項。" },
+    { "term": "Art.17", "full": "GDPR第17条", "cat": "regulation", "desc": "データ主体の消去権(忘れられる権利)を定めるGDPRの条項。" },
+    { "term": "忘れられる権利", "full": "right to be forgotten", "cat": "regulation", "desc": "自己のデータの消去を求める権利(GDPR Art.17)。鍵消去が技術的な代替策となる。" },
+    { "term": "EHDS", "full": "European Health Data Space", "cat": "regulation", "desc": "欧州健康データ空間(規則2025/327)。EU域内で医療データの一次・二次利用を統制する枠組み。" },
+    { "term": "EU AI Act", "full": "", "cat": "regulation", "desc": "EUのAI規則。医療AIを「ハイリスク」に分類し透明性・人間関与等を要求(2025-08施行)。" },
+    { "term": "FIPS 140-3", "full": "", "cat": "regulation", "desc": "米国の暗号モジュール認証基準。暗号実装の妥当性要件を定める。" },
+    { "term": "CFR", "full": "Code of Federal Regulations", "cat": "regulation", "desc": "米国連邦規則集。45 CFRがHIPAAのプライバシー・セキュリティ規則を規定する。" },
+    { "term": "ハイリスク医療AI", "full": "high-risk medical AI", "cat": "regulation", "desc": "EU AI Actで高リスクに分類される医療AI。適合性評価・透明性・人間関与の義務を負う。" },
+    { "term": "医療情報特別法", "full": "", "cat": "regulation", "desc": "日本で検討中の、医療情報の利活用を包括的に扱う特別法(2027年目標)。" },
+    { "term": "提供元基準説", "full": "", "cat": "regulation", "desc": "第三者提供の該当性を「提供元にとって個人データか」で判断する解釈。" },
+    { "term": "第三者提供", "full": "", "cat": "regulation", "desc": "個人データを第三者に渡すこと。日本では原則として本人同意を要する。" },
+    { "term": "データ最小化原則", "full": "data minimisation", "cat": "regulation", "desc": "目的の達成に必要な最小限のデータのみを処理するGDPRの原則。" },
+    { "term": "オプトアウト", "full": "opt-out", "cat": "regulation", "desc": "本人が拒否しない限り利用を認める方式。事前の明示同意(オプトイン)と対比される。" }
   ],
   "findings": [
     {
@@ -997,6 +1067,44 @@ footer a{font-weight:600}
   document.body.addEventListener('focusout', function(e){
     if(e.target.closest && e.target.closest('.term')) hideTip();
   });
+
+  // ---- 静的HTML本文への用語自動ハイライト（termize を動的データだけでなく静的部分にも適用）----
+  // TreeWalker で <main> 内のテキストノードを走査し、登録語(TERM_RE)を span.term でラップする。
+  // 既存の手動 .term / code / svg / 用語集 / 動的グリッドは除外（二重ラップ・SVG破壊・重複処理を防止）。
+  function autolinkStaticTerms(){
+    var main = document.querySelector('main');
+    if(!main || !window.NodeFilter || !document.createTreeWalker) return;
+    var SKIP = '.term, code, script, style, svg, #s-glossary, #findings-grid, #security-grid, #gaps-grid, #connect-grid';
+    var walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(node){
+        if(!node.nodeValue || !/\S/.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        var pe = node.parentElement;
+        if(!pe || !pe.closest || pe.closest(SKIP)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var nodes = [], n;
+    while((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function(node){
+      var text = node.nodeValue;
+      TERM_RE.lastIndex = 0;
+      if(!TERM_RE.test(text)) return;
+      TERM_RE.lastIndex = 0;
+      var frag = document.createDocumentFragment(), last = 0, m;
+      while((m = TERM_RE.exec(text)) !== null){
+        if(m[0].length === 0){ TERM_RE.lastIndex++; continue; }
+        if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        var span = document.createElement('span');
+        span.className = 'term'; span.setAttribute('data-term', m[0]); span.setAttribute('tabindex','0');
+        span.textContent = m[0];
+        frag.appendChild(span);
+        last = m.index + m[0].length;
+      }
+      if(last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  autolinkStaticTerms();
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hideTip(); });
 })();
 </script>
