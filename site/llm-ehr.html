@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>LLM × EHR 考察 — 同意・復号・コンテキスト取得のE2E統合</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+<style>
+:root{
+  /* type system: 日本語は高品質システムサンス、Latinはui書体。技術メタはmonoでドシエ感 */
+  --sans:-apple-system,"Segoe UI Variable Text","Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Noto Sans JP","BIZ UDPGothic",Meiryo,system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono","Cascadia Code",Menlo,Consolas,"DejaVu Sans Mono","Noto Sans Mono",monospace;
+  /* light palette — clinical paper（白カードが浮く寒色ペーパー） */
+  --bg:#e7edf4; --surface:#ffffff; --surface-2:#eef2f8; --surface-3:#e2e9f2;
+  --border:#d3dbe6; --border-strong:#bdc8d8;
+  --text:#131b29; --text-sub:#53617a; --text-faint:#8492a7;
+  --link:#0e58c4; --accent:#0e58c4; --accent-ink:#0a3f8f;
+  --c-verified:#137a36; --c-verified_caution:#8a6500; --c-partial:#a85309;
+  --c-caution:#b8400c; --c-unverifiable:#b3171c; --c-pending:#5b6677;
+  --kind-fact:#0e58c4; --kind-conclusion:#6d34d6;
+  --onchain:#e6efff; --onchain-bd:#9dbcf0; --offchain:#e4f5ec; --offchain-bd:#8ccfab;
+  --dot:rgba(20,40,80,.05);
+  --shadow-sm:0 1px 2px rgba(20,30,55,.06),0 1px 1px rgba(20,30,55,.04);
+  --shadow:0 2px 6px rgba(20,30,55,.08),0 1px 2px rgba(20,30,55,.05);
+  --shadow-lg:0 16px 40px -14px rgba(18,32,66,.30),0 5px 14px -7px rgba(18,32,66,.18);
+  --radius:14px; --radius-sm:9px;
+  --maxw:1060px; --measure:100%;
+}
+/* テーマはライト固定（ダークモード・テーマ切替は廃止） */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; color:var(--text);
+  background-color:var(--bg);
+  background-image:radial-gradient(var(--dot) 1px,transparent 1.6px);
+  background-size:24px 24px;
+  font-family:var(--sans); font-feature-settings:"palt" 1;
+  line-height:1.85; letter-spacing:.012em;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow-wrap:break-word;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 clamp(1rem,4vw,2rem)}
+a{color:var(--link); text-underline-offset:.18em; text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+h1,h2,h3{line-height:1.34; letter-spacing:.01em; text-wrap:balance}
+p{text-wrap:pretty}
+code{font-family:var(--mono); font-size:.86em; background:var(--surface-2); padding:.08em .38em; border-radius:5px; border:1px solid var(--border)}
+pre{background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.9rem 1.05rem; overflow-x:auto; -webkit-overflow-scrolling:touch; font-size:.8rem; line-height:1.65; margin:.7rem 0; box-shadow:var(--shadow-sm)}
+pre code{background:none; border:none; padding:0; font-size:1em}
+::selection{background:color-mix(in srgb,var(--accent) 26%,transparent)}
+
+/* header */
+header.top{
+  position:relative; overflow:hidden;
+  background:
+    radial-gradient(120% 150% at 88% -25%, color-mix(in srgb,var(--kind-conclusion) 14%,transparent), transparent 58%),
+    linear-gradient(180deg,var(--surface),var(--surface-2));
+  border-bottom:1px solid var(--border);
+  padding:clamp(1.4rem,4vw,2.4rem) 0 clamp(1.2rem,3vw,1.7rem);
+}
+header.top::before{content:""; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--kind-conclusion),var(--accent))}
+.backlink{display:inline-flex; align-items:center; gap:.4rem; font-family:var(--mono); font-size:.74rem; font-weight:600; letter-spacing:.04em; color:var(--accent-ink); text-decoration:none; padding:.34rem .7rem; border:1px solid var(--border); border-radius:8px; background:var(--surface); box-shadow:var(--shadow-sm); margin-bottom:1rem; transition:border-color .15s,background .15s,transform .1s}
+.backlink:hover{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); transform:translateX(-2px)}
+.eyebrow{margin:0 0 .6rem; font-family:var(--mono); font-size:.72rem; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--kind-conclusion); display:inline-flex; align-items:center; gap:.5rem}
+.eyebrow::before{content:"◆"; font-size:.62em; opacity:.65}
+header.top h1{margin:.1rem 0 .65rem; font-weight:800; font-size:clamp(1.5rem,1rem + 2.4vw,2.3rem); letter-spacing:.004em}
+.lead{color:var(--text-sub); margin:.3rem 0 1.4rem; max-width:var(--measure); font-size:clamp(.92rem,.88rem + .3vw,1.02rem)}
+.lead strong{color:var(--text)}
+
+/* index (目次): 番号付きで一覧性を明確化 */
+.toc{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-top:.2rem; counter-reset:toc}
+.toc-title{font-family:var(--mono); font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin-right:.3rem}
+.toc-title::before{content:"❯"; color:var(--kind-conclusion); margin-right:.4em}
+.toc a{display:inline-flex; align-items:baseline; gap:.45rem; text-decoration:none; color:var(--text); font-weight:600; font-size:.83rem; padding:.45rem .8rem; border:1px solid var(--border); border-radius:9px; background:var(--surface); box-shadow:var(--shadow-sm); transition:color .15s,border-color .15s,background .15s,transform .1s}
+.toc a::before{counter-increment:toc; content:counter(toc,decimal-leading-zero); font-family:var(--mono); font-size:.82em; font-weight:700; color:var(--kind-conclusion)}
+.toc a:hover{border-color:var(--kind-conclusion); background:color-mix(in srgb,var(--kind-conclusion) 7%,var(--surface)); transform:translateY(-1px)}
+
+/* section */
+section{padding:clamp(1.7rem,4vw,2.4rem) 0 .6rem; scroll-margin-top:1.5rem}
+section>h2{font-size:clamp(1.18rem,1rem + .8vw,1.5rem); font-weight:800; margin:.2rem 0 .4rem; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap}
+section>h2::before{content:""; width:.5rem; height:1.05em; border-radius:3px; background:linear-gradient(var(--kind-conclusion),var(--accent)); flex:none}
+.flag-key{font-family:var(--mono); font-size:.64rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-caution); background:color-mix(in srgb,var(--c-caution) 12%,var(--surface)); border:1px solid color-mix(in srgb,var(--c-caution) 32%,var(--border)); padding:.18rem .5rem; border-radius:999px}
+.sec-desc{color:var(--text-sub); font-size:.92rem; margin:.1rem 0 1.2rem; max-width:var(--measure); line-height:1.75}
+
+/* headline / frontier callout */
+.headline{position:relative; overflow:hidden; background:linear-gradient(180deg,var(--surface),var(--surface-2)); border:1px solid var(--border); border-radius:var(--radius); padding:1.2rem 1.35rem 1.2rem 1.55rem; box-shadow:var(--shadow); margin:0 0 1.4rem}
+.headline::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:linear-gradient(var(--kind-conclusion),var(--accent))}
+.headline .kicker{font-family:var(--mono); font-size:.68rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--kind-conclusion); margin:0 0 .4rem}
+.headline h3{margin:.1rem 0 .5rem; font-size:clamp(1.06rem,1rem + .5vw,1.25rem); font-weight:800; line-height:1.5}
+.headline p{margin:.4rem 0; font-size:.96rem}
+.headline strong{color:var(--text)}
+
+/* cards (findings / security / gaps / connect) */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr)); gap:1.1rem}
+.card{position:relative; background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--c-pending); border-radius:var(--radius); padding:1.1rem 1.2rem; box-shadow:var(--shadow-sm); transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg); border-color:var(--border-strong)}
+.card[data-conf="verified"]{border-left-color:var(--c-verified)}
+.card[data-conf="deduced"]{border-left-color:var(--accent)}
+.card[data-conf="inferred"]{border-left-color:var(--c-verified_caution)}
+.card[data-conf="uncertain"]{border-left-color:var(--c-pending)}
+.card[data-sev="最重要"]{border-left-color:var(--c-caution)}
+@media(prefers-reduced-motion:no-preference){
+  .grid>.card{animation:cardrise .5s cubic-bezier(.22,.61,.36,1) backwards}
+  .grid>.card:nth-child(2){animation-delay:.05s}
+  .grid>.card:nth-child(3){animation-delay:.1s}
+  .grid>.card:nth-child(4){animation-delay:.15s}
+  .grid>.card:nth-child(5){animation-delay:.2s}
+  .grid>.card:nth-child(6){animation-delay:.25s}
+  .grid>.card:nth-child(n+7){animation-delay:.3s}
+}
+@keyframes cardrise{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}}
+@media(hover:none){ .card:hover{transform:none; box-shadow:var(--shadow-sm)} }
+.card-head{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem}
+.card-id{font-family:var(--mono); font-weight:700; font-size:.78rem; letter-spacing:.02em; color:var(--accent-ink); background:color-mix(in srgb,var(--accent) 10%,var(--surface)); border:1px solid color-mix(in srgb,var(--accent) 22%,var(--border)); padding:.1rem .5rem; border-radius:6px}
+.card-flag{font-family:var(--mono); font-size:.66rem; letter-spacing:.04em; margin-left:auto; color:var(--text-faint); text-transform:uppercase}
+.card-flag.sev-最重要{color:var(--c-caution); font-weight:700}
+.card-flag.sev-高{color:var(--c-partial); font-weight:700}
+.card-title{margin:.15rem 0 .3rem; font-size:clamp(1.02rem,.99rem + .25vw,1.13rem); font-weight:800; line-height:1.45}
+.card-oneliner{margin:.1rem 0 .6rem; color:var(--text); font-size:.95rem}
+.card-body{margin:.45rem 0; font-size:.92rem; line-height:1.8}
+.mitig{display:grid; gap:.45rem; margin:.6rem 0 .2rem}
+.mitig-row{display:flex; gap:.55rem; align-items:baseline; font-size:.88rem; line-height:1.6}
+.mitig-row .k{flex:none; font-family:var(--mono); font-size:.68rem; font-weight:700; letter-spacing:.03em; padding:.12rem .45rem; border-radius:6px; min-width:5.4em; text-align:center}
+.mitig-row.first .k{color:var(--c-verified); background:color-mix(in srgb,var(--c-verified) 12%,var(--surface)); border:1px solid color-mix(in srgb,var(--c-verified) 30%,var(--border))}
+.mitig-row.backup .k{color:var(--accent-ink); background:color-mix(in srgb,var(--accent) 9%,var(--surface)); border:1px solid color-mix(in srgb,var(--accent) 24%,var(--border))}
+.caveat{background:color-mix(in srgb,var(--c-caution) 11%,var(--surface)); border-left:3px solid var(--c-caution); padding:.6rem .8rem; border-radius:8px; font-size:.87rem; line-height:1.7; margin:.6rem 0}
+.note{background:color-mix(in srgb,var(--accent) 7%,var(--surface)); border-left:3px solid var(--accent); padding:.7rem .9rem; border-radius:8px; font-size:.9rem; line-height:1.75; margin:1rem 0}
+.note strong{color:var(--accent-ink)}
+.related{font-size:.82rem; color:var(--text-sub); margin:.5rem 0 .2rem}
+.related a{text-decoration:none; font-family:var(--mono); font-weight:600}
+.sources{font-size:.83rem; margin-top:.6rem}
+.sources strong{font-family:var(--mono); font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; color:var(--text-faint); font-weight:600}
+.sources ul{margin:.3rem 0 0; padding-left:1.15rem}
+.sources li{margin:.18rem 0}
+.statusline{margin:.55rem 0 0; font-size:.84rem; color:var(--text-sub)}
+.chip{display:inline-block; font-family:var(--mono); font-size:.72rem; font-weight:700; padding:.12rem .55rem; border-radius:999px; border:1px solid currentColor; margin-left:.3rem}
+.chip-strengthen{color:var(--c-verified)}
+.chip-concrete{color:var(--accent)}
+.chip-gap{color:var(--c-partial)}
+.chip-nochange{color:var(--c-pending)}
+
+/* badge */
+.badge{display:inline-flex; align-items:center; gap:.32rem; font-size:.74rem; font-weight:700; padding:.16rem .6rem; border-radius:999px; border:1px solid currentColor; white-space:nowrap; letter-spacing:.01em}
+.badge>[aria-hidden]{font-family:var(--mono); font-weight:700}
+.badge-verified{color:var(--c-verified); background:color-mix(in srgb,var(--c-verified) 14%,transparent)}
+.badge-deduced{color:var(--accent); background:color-mix(in srgb,var(--accent) 13%,transparent)}
+.badge-inferred{color:var(--c-verified_caution); background:color-mix(in srgb,var(--c-verified_caution) 14%,transparent)}
+.badge-uncertain{color:var(--c-pending); background:color-mix(in srgb,var(--c-pending) 14%,transparent)}
+
+/* confidence legend */
+.conf-legend{display:flex; flex-wrap:wrap; gap:.6rem 1rem; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.85rem 1.1rem; box-shadow:var(--shadow-sm); margin:0 0 1.3rem; font-size:.84rem}
+.conf-legend .lg-title{font-family:var(--mono); font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint)}
+.conf-legend .lg-item{display:inline-flex; align-items:center; gap:.4rem; color:var(--text-sub)}
+
+/* term tooltip & glossary */
+.term,.term-demo{text-decoration:underline dotted; text-decoration-color:color-mix(in srgb,var(--accent) 50%,transparent); text-underline-offset:3px; cursor:help; color:inherit}
+.term:hover{color:var(--accent); text-decoration-color:var(--accent)}
+.term:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; color:var(--accent)}
+.toc a:focus-visible,.backlink:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:7px}
+#svgtip strong{color:var(--bg)}
+.tip-full{font-family:var(--mono); font-weight:400; opacity:.8; font-size:.86em}
+.glossary{display:grid; gap:1.1rem; grid-template-columns:1fr; align-items:start}
+.gloss-cat{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.9rem 1.1rem; box-shadow:var(--shadow-sm)}
+.gloss-cat h3{margin:.1rem 0 .7rem; font-family:var(--mono); font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; color:var(--accent-ink); border-bottom:1px solid var(--border); padding-bottom:.4rem}
+.gloss-list{margin:0; display:grid; grid-template-columns:minmax(120px,max-content) 1fr; gap:.5rem .9rem; align-items:baseline}
+.gloss-list dt{font-weight:700; font-size:.88rem}
+.gloss-list dd{margin:0; font-size:.85rem; color:var(--text-sub); line-height:1.65}
+.gloss-full{display:block; font-family:var(--mono); font-weight:400; font-size:.72rem; color:var(--text-faint)}
+@media(max-width:560px){ .gloss-list{grid-template-columns:1fr; gap:.1rem .5rem} .gloss-list dd{margin-bottom:.6rem} }
+
+/* matrix / tables */
+.matrix-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); margin:0 0 1.1rem}
+table.matrix{width:100%; border-collapse:collapse; font-size:.86rem; background:var(--surface); min-width:600px}
+table.matrix th,table.matrix td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--border); vertical-align:top}
+table.matrix thead th{background:var(--surface-2); position:sticky; top:0; z-index:1; font-family:var(--mono); font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; color:var(--text-sub)}
+table.matrix tbody tr{transition:background .12s}
+table.matrix tbody tr:hover{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+table.matrix tbody th[scope=row]{font-weight:700; font-size:.84rem; background:color-mix(in srgb,var(--surface-2) 60%,var(--surface)); white-space:nowrap}
+table.matrix tr:last-child td,table.matrix tr:last-child th{border-bottom:none}
+table.matrix td .num{font-family:var(--mono); font-weight:800}
+/* featured comparison */
+table.cmp{min-width:520px}
+table.cmp .win{background:color-mix(in srgb,var(--c-verified) 13%,var(--surface)); color:var(--c-verified); font-weight:800}
+.winflag{display:inline-block; font-family:var(--mono); font-size:.62rem; font-weight:700; letter-spacing:.04em; color:var(--c-verified); border:1px solid color-mix(in srgb,var(--c-verified) 40%,var(--border)); border-radius:999px; padding:0 .4rem; margin-left:.35rem; vertical-align:middle}
+.tbl-cap{font-size:.8rem; color:var(--text-faint); margin:.1rem 0 1.1rem; line-height:1.6}
+.tbl-cap a{font-family:var(--mono); font-weight:600; text-decoration:none}
+
+/* diagrams */
+.diagram{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.2rem; margin:0 0 1.3rem; box-shadow:var(--shadow-sm)}
+.diagram h3{margin:.1rem 0 .25rem; font-size:1.02rem; font-weight:800}
+.diagram p.cap{color:var(--text-sub); font-size:.85rem; margin:.1rem 0 .9rem; max-width:var(--measure); line-height:1.7}
+.diagram svg{width:100%; height:auto; display:block; max-width:760px; margin:0 auto}
+.svg-box{fill:var(--surface); stroke:var(--border)}
+.svg-on{fill:var(--onchain); stroke:var(--onchain-bd)}
+.svg-off{fill:var(--offchain); stroke:var(--offchain-bd)}
+.svg-t{fill:var(--text); font-size:13px; font-family:var(--sans)}
+.svg-ts{fill:var(--text-sub); font-size:11px; font-family:var(--sans)}
+.svg-line{stroke:var(--text-sub); stroke-width:1.5; fill:none}
+.svg-dash{stroke:var(--text-sub); stroke-width:1.5; fill:none; stroke-dasharray:5 4}
+.svg-tt{fill:var(--text); font-size:13.5px; font-weight:800; font-family:var(--sans)}
+.svg-plane{fill:var(--surface-2); stroke:var(--border)}
+.svg-key{fill:color-mix(in srgb,var(--kind-conclusion) 10%,var(--surface)); stroke:color-mix(in srgb,var(--kind-conclusion) 42%,var(--border))}
+.svg-tee{fill:color-mix(in srgb,var(--kind-conclusion) 13%,var(--surface)); stroke:color-mix(in srgb,var(--kind-conclusion) 50%,var(--border))}
+.svg-teebound{fill:color-mix(in srgb,var(--kind-conclusion) 5%,transparent); stroke:var(--kind-conclusion); stroke-width:1.6; stroke-dasharray:7 5}
+.svg-warn{fill:color-mix(in srgb,var(--c-caution) 11%,var(--surface)); stroke:color-mix(in srgb,var(--c-caution) 42%,var(--border))}
+.svg-val{fill:color-mix(in srgb,var(--accent) 6%,var(--surface)); stroke:color-mix(in srgb,var(--accent) 26%,var(--border))}
+.svg-flow-data{stroke:var(--c-verified); stroke-width:2.2; fill:none}
+.svg-flow-perm{stroke:var(--accent); stroke-width:2.2; fill:none}
+.svg-num{fill:var(--kind-conclusion); font-size:12px; font-weight:800; font-family:var(--mono)}
+.diagram svg text{pointer-events:none}
+rect.tipnode{cursor:help; transition:stroke .1s}
+rect.tipnode:hover,rect.tipnode:focus{stroke:var(--accent); stroke-width:2.5; outline:none}
+#svgtip{position:fixed; z-index:60; max-width:320px; background:var(--text); color:var(--bg); padding:.55rem .75rem; border-radius:8px; font-size:.78rem; line-height:1.55; box-shadow:var(--shadow-lg); pointer-events:none; opacity:0; transition:opacity .12s}
+#svgtip.show{opacity:1}
+
+footer{border-top:1px solid var(--border); margin-top:2.5rem; padding:1.6rem 0 2.8rem; color:var(--text-sub); font-size:.83rem; line-height:1.75}
+footer p{max-width:var(--measure)}
+footer code{font-size:.82em}
+footer a{font-weight:600}
+.skip{position:absolute; left:-999px}
+.skip:focus{left:1rem; top:1rem; background:var(--surface); padding:.5rem .8rem; z-index:100; border:1px solid var(--accent); border-radius:8px}
+
+/* ---- responsive: phones & tablets ---- */
+@media(max-width:720px){
+  .toc a{padding:.55rem .85rem}
+  section{scroll-margin-top:1rem}
+  .card-flag{margin-left:0}
+}
+@media(max-width:600px){
+  .diagram{overflow-x:auto}
+  .diagram svg{min-width:480px}
+}
+/* ---- motion & contrast preferences ---- */
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important; animation-delay:0!important; transition-duration:.001ms!important}
+}
+@media(prefers-contrast:more){
+  :root{--border:#98a6b8; --border-strong:#7b8a9d; --text-sub:#3b4859}
+  .card,.gloss-cat,.diagram,.matrix-wrap,.conf-legend{border-width:1.5px}
+}
+</style>
+</head>
+<body>
+<a href="#s-overview" class="skip">本文へスキップ</a>
+
+<header class="top">
+  <div class="wrap">
+    <a class="backlink" href="index.html">← 検証ビューア（外部事実・設計結論 C1–C11）へ戻る</a>
+    <p class="eyebrow">LLM × EHR 統合 考察</p>
+    <h1>ブロックチェーン管理EHRを LLM に渡す<br>— 同意 → 復号 → コンテキスト取得の E2E 統合</h1>
+    <p class="lead">検証ビューア（C1–C11）の先にある<strong>2本の探索的考察</strong>を可視化したものです。患者の同意に基づき LLM が暗号化カルテを復号してコンテキストとして取得する<strong>エンドツーエンド統合</strong>の具体設計、最重要のセキュリティ懸念、そして「<strong>ベクトルRAGより構造化ナビゲーション優位</strong>」という実証的修正を整理します。各主張には <strong>信頼度ラベル</strong>（確証 / 論理導出 / 状況推測 / 未確認）を付与しています。</p>
+    <nav class="toc" aria-label="目次">
+      <span class="toc-title">目次</span>
+      <a href="#s-overview">概要・最重要発見</a>
+      <a href="#s-retrieval">注入方式の比較 ★</a>
+      <a href="#s-sequence">E2E 9ステップ</a>
+      <a href="#s-security">セキュリティ6懸念</a>
+      <a href="#s-defense">4層防御</a>
+      <a href="#s-blockchain">ブロックチェーン統合</a>
+      <a href="#s-regulation">規制マトリクス</a>
+      <a href="#s-gaps">未解決課題</a>
+      <a href="#s-connect">既存検証との接続</a>
+      <a href="#s-glossary">用語集</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1. 概要・最重要発見 -->
+  <section id="s-overview">
+    <h2>概要・最重要発見</h2>
+    <p class="sec-desc">本構想の核心は「患者がスマートコントラクトで同意 → LLM がオフチェーンの暗号化カルテを復号 → コンテキストとして取得」という一連のループです。2本の調査（<code>research:controller-search</code>・重視期間2024–2026、いずれも critic 判定 PASS）の結論を、まず1つの最重要メッセージと5つの発見にまとめます。</p>
+
+    <div class="headline">
+      <p class="kicker">本プロジェクトの貢献余地</p>
+      <h3>E2E ループ全体を一気通貫で実装した一次文献は、2026-05 時点で存在しない＝研究フロンティア。</h3>
+      <p>同意ゲート（EIP-712）・復号権付与（MA-ABE／閾値PRE）・鍵の安全到達（attestation-gated key release）・TEE 推論・オンチェーン監査（AuditEvent＋Merkle）は、<strong>構成要素の一つ一つが一次文献・公式 docs で実コード／API 仕様まで具体化できる成熟段階</strong>に達しています。しかし、それらを「同意 → 復号 → LLM コンテキスト」として<strong>結ぶ統合プロトコルは未だ文献に不在</strong>（researcher-1/2/3 が独立に同じ空白を報告）。この統合の設計こそが本プロジェクトの貢献余地です。</p>
+    </div>
+
+    <div class="conf-legend" aria-label="信頼度ラベルの凡例">
+      <span class="lg-title">信頼度ラベル</span>
+      <span class="lg-item"><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span> 一次資料/実証で確認</span>
+      <span class="lg-item"><span class="badge badge-deduced"><span aria-hidden="true">⊢</span> 論理導出</span> 公式docs・複数学術から導出</span>
+      <span class="lg-item"><span class="badge badge-inferred"><span aria-hidden="true">≈</span> 状況推測</span> 状況証拠からの推測</span>
+      <span class="lg-item"><span class="badge badge-uncertain"><span aria-hidden="true">?</span> 未確認</span> 未確認・研究ギャップ</span>
+    </div>
+
+    <div class="grid" id="findings-grid"></div>
+  </section>
+
+  <!-- 2. コンテキスト注入方式の比較 -->
+  <section id="s-retrieval">
+    <h2>コンテキスト注入方式の比較 <span class="flag-key">★ 最重要論点</span></h2>
+    <p class="sec-desc">患者1人分の FHIR レコードは<strong>平均約300万トークン</strong>に達し、全量注入は不可能です。前回調査は「ベクトル<span class="term" data-term="RAG">RAG</span> が支配的設計」と結論しましたが、本調査はこれを<strong>一次ソースで実証的に修正</strong>しました — 医療／FHIR 文脈では<strong>構造化ナビゲーション＋語彙的検索が優位</strong>です。</p>
+
+    <div class="diagram" style="padding-bottom:.6rem">
+      <h3>CLEAR ベンチマーク — 構造化検索がベクトル RAG を上回る</h3>
+      <p class="cap"><span class="term" data-term="CLEAR">CLEAR</span>（NER＋オントロジー拡張＋正規表現の構造化検索）を、ベクトル <span class="term" data-term="RAG">RAG</span>・全ノート注入と比較。3指標すべてで CLEAR が最良です。</p>
+      <div class="matrix-wrap">
+        <table class="matrix cmp">
+          <thead><tr><th scope="col">指標</th><th scope="col">CLEAR（NER＋regex）</th><th scope="col">Embedding RAG</th><th scope="col">Full-Note（全量）</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">F1 スコア<br><span style="font-weight:400;color:var(--text-faint);font-size:.92em">高いほど良い</span></th><td class="win"><span class="num">0.90</span><span class="winflag">最良</span></td><td><span class="num">0.86</span></td><td><span class="num">0.79</span></td></tr>
+            <tr><th scope="row">入力トークン<br><span style="font-weight:400;color:var(--text-faint);font-size:.92em">少ないほど良い</span></th><td class="win"><span class="num">1.1k</span><span class="winflag">−71%</span></td><td><span class="num">3.8k</span></td><td><span class="num">6.1k</span></td></tr>
+            <tr><th scope="row">推論時間<br><span style="font-weight:400;color:var(--text-faint);font-size:.92em">短いほど良い</span></th><td class="win"><span class="num">4.95s</span><span class="winflag">最速</span></td><td><span class="num">17.41s</span></td><td><span class="num">20.08s</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tbl-cap">出典: CLEAR — Clinical Entity Augmented Retrieval（<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11743751/" target="_blank" rel="noopener">NPJ Digital Medicine 2025, PMC11743751</a>）。原因＝(a) 長コンテキストで <span class="term" data-term="lost in the middle">lost in the middle</span>、(b) embedding が最重要チャンクを下位ランク付け。【確証】</p>
+    </div>
+
+    <div class="note">
+      <strong>命名混乱の解明:</strong> LLMonFHIR（JACC 2025）は「<span class="term" data-term="RAG">RAG</span> abstraction ＝ <span class="term" data-term="function calling">function calling</span>」と明示しており、ベクトル埋め込みではなく構造化取得です。前回レポートの「LLMonFHIR は RAG」という記述は、この命名の混乱に起因していました。
+    </div>
+
+    <p class="sec-desc" style="margin-top:1.2rem">補強する一次ソース: <strong>BM25</strong> が財務QAで text-embedding-3-large を全指標で上回る（<span class="term" data-term="BM25">BM25</span> Recall@5 0.644 vs 0.587, arXiv 2604.01733）／医療文書分類で BM25 が semantic より高精度かつ高速（arXiv 2505.11582）／FHIR-AgentBench はベクトル RAG を評価対象外とした（Verily/KAIST/MIT）／EHR-MCP は MCP 経由 SQL 決定論クエリが数値精度で優位。</p>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.4rem 0 .5rem">データ種別ごとの使い分け（「コンテキスト取得」ステップの設計判断）</h3>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">データ種別</th><th scope="col">推奨手法</th><th scope="col">根拠</th></tr></thead>
+        <tbody>
+          <tr><td>FHIR 構造化リソース<br>（Observation 数値 / Medication / Condition）</td><td><strong>構造化ナビゲーション</strong><br>（<span class="term" data-term="function calling">function calling</span> / <span class="term" data-term="MCP">MCP</span> / FHIR API ＋ リソース階層）</td><td>EHR-MCP, LLMonFHIR, FHIR-AgentBench</td></tr>
+          <tr><td>非構造化臨床ノート<br>（DocumentReference 等）</td><td><strong>CLEAR 型 NER＋regex</strong> または BM25 ベース hybrid</td><td>CLEAR（NPJ DM 2025）, arXiv 2505.11582</td></tr>
+          <tr><td>大量の非構造化文書<br>（&gt;1000件）</td><td><strong>BM25 ＋ dense hybrid ＋ <span class="term" data-term="reranking">reranking</span></strong></td><td>arXiv 2604.01733, LlamaIndex 2026</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <strong>300万トークン問題の新解法:</strong> 全量をベクトルインデックス化するのでなく、「<strong>FHIR 階層＋リソースタイプ指定でフィルタ → 必要リソースのみ fetch → 非構造化部分に CLEAR/BM25</strong>」というエージェント的ナビゲーション。FHIR 固有の失敗（リソースタイプ誤識別・参照リンク追跡失敗）は <em>retrieval</em> ではなく <em>navigation</em> の問題であり、ベクトル RAG では解決できません。この方式は <span class="term" data-term="TEE">TEE</span> 内 RAG のメモリ制約を回避し、最小必要原則とも整合し、間接プロンプトインジェクションの攻撃面も縮小します。【確証】
+    </div>
+  </section>
+
+  <!-- 3. E2E 9ステップシーケンス -->
+  <section id="s-sequence">
+    <h2>E2E 統合 — 9ステップのシーケンスと信頼境界</h2>
+    <p class="sec-desc">焦点1〜4を統合した E2E フロー。各ステップは異なる<strong>信頼境界</strong>をまたぎます。色は <span style="color:var(--text-sub);font-weight:700">灰=クライアント</span>・<span style="color:var(--accent);font-weight:700">青=ブロックチェーン/監査</span>・<span style="color:var(--kind-conclusion);font-weight:700">紫=鍵管理・TEE</span>。<strong>最重要の信頼境界は TEE（ハードウェア隔離）</strong>で、ステップ⑤〜⑧を囲んで強調しています。各ノードにカーソル（またはフォーカス）を合わせると主体・保証・残存リスクが出ます。</p>
+
+    <div class="diagram">
+      <h3>図A: 「同意 → 復号 → コンテキスト取得 → 監査」の流れ</h3>
+      <p class="cap">患者の EIP-712 署名から始まり、スマートコントラクトの同意ゲート、復号権付与、アテステーション連動の鍵払い出しを経て、TEE 内で復号・取得・推論し、最後に本文を含まない監査証跡をオンチェーンに残します。</p>
+      <svg viewBox="0 0 760 766" role="img" aria-labelledby="dAdesc">
+        <desc id="dAdesc">縦方向の9ステップシーケンス。①患者がEIP-712署名で同意（クライアント）、②スマートコントラクトが同意検証しCONSENT_APPROVEDを発行（ブロックチェーン）、③MA-ABE属性検証または閾値PREで復号権付与（鍵管理）、④アテステーション検証後にKMS/HSMが暗号化鍵を払い出す（鍵管理）、⑤TEE内で鍵を復号、⑥EHR本文を復号してコンテキスト取得（構造化ナビ優先）、⑦ガードレールを介してLLM推論、⑧出力を暗号化して返却、の⑤〜⑧はTEE信頼境界の内側、⑨AuditEventハッシュとMerkle Rootをオンチェーン記録（監査）。</desc>
+
+        <!-- TEE 信頼境界（背景・強調） -->
+        <rect class="svg-teebound" x="150" y="346" width="596" height="300" rx="14"/>
+        <text class="svg-num" x="166" y="368" style="fill:var(--kind-conclusion)">TEE</text>
+        <text class="svg-ts" x="200" y="368" style="fill:var(--kind-conclusion);font-weight:700">信頼境界（ハードウェア隔離・最重要）— ホスト/ハイパーバイザ/他テナントから不可視</text>
+
+        <!-- step nodes -->
+        <rect class="svg-box tipnode" x="200" y="56" width="400" height="52" rx="9" data-tip="主体: 患者ウォレット｜保証: 患者鍵による署名(ECDSA EUF-CMA)・クライアント側で構造化同意｜残存リスク: wrappedKey を calldata に含める設計は L1 で可視になりうる。"/>
+        <text class="svg-num" x="214" y="78">①</text>
+        <text class="svg-t" x="400" y="79" text-anchor="middle" font-weight="700">患者が EIP-712 署名で同意</text>
+        <text class="svg-ts" x="400" y="96" text-anchor="middle">rid / grantee / expiration / wrappedKey / nonce</text>
+
+        <rect class="svg-on tipnode" x="200" y="132" width="400" height="52" rx="9" data-tip="主体: スマートコントラクト｜保証: ブロックチェーンの不変性。grantPermissionBySig が nonce 未使用・期限・ecrecover で署名者=患者を検証｜残存リスク: 失効伝播のブロック確認ラグ／ZKP同意充足は未実装。"/>
+        <text class="svg-num" x="214" y="154">②</text>
+        <text class="svg-t" x="400" y="155" text-anchor="middle" font-weight="700">スマートコントラクトが同意検証</text>
+        <text class="svg-ts" x="400" y="172" text-anchor="middle">grantPermissionBySig → CONSENT_APPROVED 発行</text>
+
+        <rect class="svg-key tipnode" x="200" y="208" width="400" height="52" rx="9" data-tip="主体: KGC群 / プロキシ群｜保証: エスクローフリー（単一KGC侵害で全鍵再構成不可）・k−1 結託耐性｜残存リスク: ABE秘密鍵を TEE へアテステーション連動でリリースする実装は未確認。"/>
+        <text class="svg-num" x="214" y="230">③</text>
+        <text class="svg-t" x="400" y="231" text-anchor="middle" font-weight="700">復号権付与：MA-ABE 属性検証 / 閾値 PRE</text>
+        <text class="svg-ts" x="400" y="248" text-anchor="middle">患者鍵＋病院鍵の二者分散（C3）を具体化</text>
+
+        <rect class="svg-key tipnode" x="200" y="284" width="400" height="52" rx="9" data-tip="主体: TEE＋KMS/HSM｜保証: 平文鍵は TEE 内部にしか出ない。AWS は CiphertextForRecipient を返しホストは復号不可。Azure SKR は MAA トークンと SKR ポリシー照合で TEE 内のみ利用可能な形で鍵リリース｜残存リスク: KMS は特定アテステーションのみ信頼。"/>
+        <text class="svg-num" x="214" y="306">④</text>
+        <text class="svg-t" x="400" y="307" text-anchor="middle" font-weight="700">アテステーション → KMS/HSM が PCR 照合</text>
+        <text class="svg-ts" x="400" y="324" text-anchor="middle">→ 暗号化鍵（CiphertextForRecipient）を払い出し</text>
+
+        <rect class="svg-tee tipnode" x="200" y="382" width="400" height="48" rx="9" data-tip="主体: TEE｜保証: ハードウェア保証でホスト・ハイパーバイザ・他テナントから不可視｜残存リスク: KV-Cache タイミング / Flush+Reload / BudgetLeak 等のサイドチャネルは残存。"/>
+        <text class="svg-num" x="214" y="404">⑤</text>
+        <text class="svg-t" x="400" y="411" text-anchor="middle" font-weight="700">TEE 内で鍵を復号（平文鍵は内部のみ）</text>
+
+        <rect class="svg-tee tipnode" x="200" y="446" width="400" height="48" rx="9" data-tip="主体: TEE内取得エンジン｜保証: 最小必要原則と整合（構造化ナビ優先で取得を絞る）｜残存リスク: TEE内RAGは研究段階、SGXメモリ制限とインデックスの非整合。"/>
+        <text class="svg-num" x="214" y="468">⑥</text>
+        <text class="svg-t" x="400" y="475" text-anchor="middle" font-weight="700">EHR 本文を復号 → コンテキスト取得</text>
+        <text class="svg-ts" x="400" y="490" text-anchor="middle" style="font-size:10px">構造化ナビ優先（FHIR階層 fetch → CLEAR/BM25 → hybrid）</text>
+
+        <rect class="svg-warn tipnode" x="200" y="510" width="400" height="48" rx="9" data-tip="主体: TEE内LLM＋ポリシーエンジン｜保証: コードの完全性はアテステーションで証明｜残存リスク: 推論の意味論的正しさ（同意scope遵守）は別途ガードレールで担保。取得本文経由の間接プロンプトインジェクションが最重要。"/>
+        <text class="svg-num" x="214" y="532">⑦</text>
+        <text class="svg-t" x="400" y="539" text-anchor="middle" font-weight="700">ガードレール（取得本文＝信頼境界外）→ LLM 推論</text>
+
+        <rect class="svg-tee tipnode" x="200" y="574" width="400" height="48" rx="9" data-tip="主体: TEE → クライアント｜保証: ECDH / ML-KEM / Noise でフォワードセキュリティを確保して暗号化返却｜残存リスク: —"/>
+        <text class="svg-num" x="214" y="596">⑧</text>
+        <text class="svg-t" x="400" y="603" text-anchor="middle" font-weight="700">出力を暗号化して患者・医療者へ返却</text>
+
+        <rect class="svg-on tipnode" x="200" y="664" width="400" height="52" rx="9" data-tip="主体: 監査スマートコントラクト｜保証: 本文を一切記録しないため GDPR 第17条と両立、HIPAA は6年保存。誰が・いつ・誰のカルテを・どのモデルに渡したかを記録｜残存リスク: モデル版管理の断絶・長期検証性。"/>
+        <text class="svg-num" x="214" y="686">⑨</text>
+        <text class="svg-t" x="400" y="687" text-anchor="middle" font-weight="700">AuditEvent ハッシュ・Merkle Root をオンチェーン</text>
+        <text class="svg-ts" x="400" y="704" text-anchor="middle">本文非記録（EDPB 02/2025 と整合）</text>
+
+        <!-- arrows -->
+        <path class="svg-flow-perm" d="M400,108 L400,130" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-perm" d="M400,184 L400,206" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-perm" d="M400,260 L400,282" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-perm" d="M400,336 L400,380" marker-end="url(#arrow-perm)"/>
+        <path class="svg-flow-data" d="M400,430 L400,444" marker-end="url(#arrow-data)"/>
+        <path class="svg-flow-data" d="M400,494 L400,508" marker-end="url(#arrow-data)"/>
+        <path class="svg-flow-data" d="M400,558 L400,572" marker-end="url(#arrow-data)"/>
+        <path class="svg-flow-perm" d="M400,622 L400,662" marker-end="url(#arrow-perm)"/>
+      </svg>
+    </div>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.2rem 0 .5rem">各ステップの主体・保証・残存リスク</h3>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">#</th><th scope="col">ステップ</th><th scope="col">主体</th><th scope="col">信頼境界・保証</th><th scope="col">残存リスク</th></tr></thead>
+        <tbody>
+          <tr><td>①</td><td>EIP-712 同意署名（rid/grantee/expiration/wrappedKey/nonce）</td><td>患者ウォレット</td><td>患者鍵（ECDSA EUF-CMA）・クライアント署名</td><td>wrappedKey を calldata に含める設計は L1 で可視</td></tr>
+          <tr><td>②</td><td><code>grantPermissionBySig</code> 検証 → CONSENT_APPROVED</td><td>スマートコントラクト</td><td>BC 不変性・nonce/期限/ecrecover 検証</td><td>失効伝播のラグ／ZKP 同意充足は未実装</td></tr>
+          <tr><td>③</td><td>復号権付与: MA-ABE 属性検証 or 閾値 PRE</td><td>KGC 群／プロキシ群</td><td>エスクローフリー・k−1 結託耐性</td><td>ABE 鍵の TEE リリース実装は未確認</td></tr>
+          <tr><td>④</td><td>アテステーション → KMS/HSM が PCR/MAA 照合 → 暗号化鍵払出</td><td>TEE＋KMS</td><td><strong>平文鍵は TEE 内部のみ</strong>・ホスト復号不可</td><td>KMS は特定アテステーションのみ信頼</td></tr>
+          <tr><td>⑤</td><td>TEE 内で鍵 → EHR 本文を復号</td><td>TEE</td><td>HW 保証（ホスト/HV/他テナント不可視）</td><td>KV-Cache / Flush+Reload / BudgetLeak</td></tr>
+          <tr><td>⑥</td><td>コンテキスト取得（<strong>構造化ナビ優先</strong>）</td><td>TEE 内取得エンジン</td><td>最小必要原則と整合</td><td>TEE 内 RAG は研究段階</td></tr>
+          <tr><td>⑦</td><td>ガードレール（取得本文＝信頼境界外）→ LLM 推論</td><td>TEE 内 LLM＋ポリシーエンジン</td><td>コード完全性はアテステーションで証明</td><td>意味論的正しさは別途担保／間接 PI</td></tr>
+          <tr><td>⑧</td><td>出力を ECDH/ML-KEM/Noise で暗号化返却</td><td>TEE → クライアント</td><td>フォワードセキュリティ</td><td>—</td></tr>
+          <tr><td>⑨</td><td>AuditEvent ハッシュ／Merkle Root／アテステーション証跡をオンチェーン</td><td>監査 SC</td><td>本文非記録で GDPR 第17条両立・HIPAA 6年保存</td><td>モデル版管理の断絶／長期検証性</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. セキュリティ懸念6項目 -->
+  <section id="s-security">
+    <h2>主要セキュリティ懸念6項目と緩和策</h2>
+    <p class="sec-desc">本テーマ固有の最重要懸念は <strong>(a) 間接プロンプトインジェクション</strong> — ブロックチェーンで正当に復号・取得したカルテ本文そのものが攻撃ベクターになります。各懸念に「第一防御」と「補完防御」を対応づけました。</p>
+    <div class="grid" id="security-grid"></div>
+
+    <div class="diagram" style="margin-top:1.4rem">
+      <h3>図B: TEE でも防げない残存リスク（サイドチャネル・2025–2026 実証）</h3>
+      <p class="cap">「TEE ＝ 万能」ではありません。ハードウェア隔離の内側でも、処理の副次情報から秘密が漏れる実証が複数あります。各ボックスにカーソルで詳細。</p>
+      <svg viewBox="0 0 760 250" role="img" aria-labelledby="dBdesc">
+        <desc id="dBdesc">4つのサイドチャネル攻撃。KV-Cacheタイミング攻撃は患者名と病名の対応を95.4%精度で推定、CPU Flush+ReloadはAPIキーを80-90%回復、BudgetLeakはRAG知識ベースのメンバーシップを推定、物理/CVEはウェイトやデータの漏洩。いずれもTEEのハードウェア隔離だけでは防ぎきれない。</desc>
+        <rect class="svg-warn tipnode" x="14" y="20" width="358" height="98" rx="10" data-tip="arXiv 2409.20002: TTFT の差（ヒット約0.35μs vs ミス約45μs）から推定。ソフトウェア層のキャッシュ共有が原因で、TEE のハードウェア隔離では防げない。緩和: K≥2 トークン単位キャッシュ共有。"/>
+        <text class="svg-tt" x="34" y="46">KV-Cache タイミング攻撃</text>
+        <text class="svg-t" x="34" y="70" style="fill:var(--c-caution);font-weight:800">患者名 × 病名 を 95.4% 精度で推定</text>
+        <text class="svg-ts" x="34" y="90">システムプロンプトも 89.0% 復元</text>
+        <text class="svg-ts" x="34" y="108" style="font-size:10px">TEEで防げるか: ✗（ソフト層共有問題）</text>
+
+        <rect class="svg-warn tipnode" x="388" y="20" width="358" height="98" rx="10" data-tip="arXiv 2505.00817: 埋め込み層アクセスの観測（CUDA unified memory）。緩和: Intel CAT キャッシュ分割。"/>
+        <text class="svg-tt" x="408" y="46">CPU Flush+Reload</text>
+        <text class="svg-t" x="408" y="70" style="fill:var(--c-caution);font-weight:800">API キーを 80–90% 回復</text>
+        <text class="svg-ts" x="408" y="90">平文クエリも 40% 回復</text>
+        <text class="svg-ts" x="408" y="108" style="font-size:10px">TEEで防げるか: ✗（埋め込み層に非適用）</text>
+
+        <rect class="svg-warn tipnode" x="14" y="132" width="358" height="98" rx="10" data-tip="arXiv 2511.12043: トークン予算下の出力長差から RAG 知識ベースへの包含を推定。緩和: バジェットのランダム化・差分プライバシー。"/>
+        <text class="svg-tt" x="34" y="158">BudgetLeak</text>
+        <text class="svg-t" x="34" y="182" style="fill:var(--c-caution);font-weight:800">RAG 知識ベースのメンバーシップ推定</text>
+        <text class="svg-ts" x="34" y="202">出力長が観測可能なことを悪用</text>
+        <text class="svg-ts" x="34" y="220" style="font-size:10px">TEEで防げるか: ✗（出力長が観測可能）</text>
+
+        <rect class="svg-warn tipnode" x="388" y="132" width="358" height="98" rx="10" data-tip="コールドブート HBM・PCIe DMA・ファームウェア脆弱性。B200 は暗号化 PCIe 5.0+NVLink で一部軽減するが、FW 更新依存。"/>
+        <text class="svg-tt" x="408" y="158">物理 / CVE</text>
+        <text class="svg-t" x="408" y="182" style="fill:var(--c-partial);font-weight:800">ウェイト・データの漏洩</text>
+        <text class="svg-ts" x="408" y="202">コールドブート HBM・PCIe DMA・FW</text>
+        <text class="svg-ts" x="408" y="220" style="font-size:10px">TEEで防げるか: △（B200で一部軽減）</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 5. 4層防御 -->
+  <section id="s-defense">
+    <h2>4層防御アーキテクチャ（Defense-in-Depth）</h2>
+    <p class="sec-desc">取得データを「信頼境界の外側」として扱う前提で、入力前（Layer 0）→ RAG（Layer 1）→ 推論時（Layer 2）→ 出力・監査（Layer 3）の4層に、認証・認可と推論環境という2つの横断的防御を加えます。各層は前章のセキュリティ懸念に対応します。</p>
+
+    <div class="diagram">
+      <h3>図C: Layer 0–3 ＋ 横断防御と、対応する懸念</h3>
+      <p class="cap">LLM を中心に、入力から出力までを4層が包みます。上下の帯（認証・認可／推論環境）は全層に横断的にかかります。中央の橙の帯は本テーマの核心 —「取得カルテ本文＝信頼境界の外側」。各要素にカーソルで補足。</p>
+      <svg viewBox="0 0 760 500" role="img" aria-labelledby="dCdesc">
+        <desc id="dCdesc">上から、認証・認可の横断帯（SMART on FHIR スコープ・最小権限・AIエージェント固有ID）、Layer 0 入力前（PHIマスキング・最小必要フィルタ ABAC）、Layer 1 RAG（患者単位Silo分離・取得前アクセス制御・Distance threshold）、中央の警告帯（取得カルテ本文＝信頼境界の外側）、Layer 2 推論時（spotlighting・Jailbreak検出・PII入出力フィルタ）、Layer 3 出力・監査（PHI漏洩監視・オンチェーン監査ハッシュ・Human-in-the-loop）、推論環境の横断帯（オンプレ/TEE・BAA/ZDR・アテステーション）が積層する。右端に各層が対応するセキュリティ懸念を示す。</desc>
+
+        <!-- 認証・認可（横断・上） -->
+        <rect class="svg-val tipnode" x="14" y="14" width="732" height="48" rx="9" data-tip="認証・認可（横断）: SMART on FHIR のスコープ認可・最小権限・AIエージェント固有ID。なりすまし(c)に対応。"/>
+        <text class="svg-tt" x="28" y="38">認証・認可（横断）</text>
+        <text class="svg-ts" x="178" y="38">SMART on FHIR スコープ ／ 最小権限 ／ AIエージェント固有ID</text>
+        <text class="svg-ts" x="732" y="38" text-anchor="end" style="fill:var(--text-faint)">→ 懸念(c) なりすまし</text>
+
+        <!-- Layer 0 -->
+        <rect class="svg-plane tipnode" x="14" y="72" width="732" height="58" rx="9" data-tip="Layer 0（入力前）: PHIマスキング、ポリシープロキシで最小必要コンテキストに絞る、ABAC（属性ベースアクセス制御）。HIPAA最小必要原則(4.1)に対応。"/>
+        <text class="svg-num" x="28" y="96" style="fill:var(--accent)">L0</text>
+        <text class="svg-tt" x="56" y="96">入力前</text>
+        <text class="svg-ts" x="150" y="96">PHI マスキング ／ 最小必要フィルタ ／ ABAC</text>
+        <text class="svg-ts" x="56" y="116" style="fill:var(--text-faint)">PHI を生のまま渡さず、構造化コード・統計・タスク限定コンテキストに置換</text>
+        <text class="svg-ts" x="732" y="96" text-anchor="end" style="fill:var(--text-faint)">→ 最小必要</text>
+
+        <!-- Layer 1 -->
+        <rect class="svg-off tipnode" x="14" y="140" width="732" height="58" rx="9" data-tip="Layer 1（RAG）: 患者単位 Silo 分離、取得前アクセス制御、Provenance、Distance threshold、埋め込み逆変換対策。クロスパティエントリーク(d)に対応。"/>
+        <text class="svg-num" x="28" y="164" style="fill:var(--c-verified)">L1</text>
+        <text class="svg-tt" x="56" y="164">RAG / 取得</text>
+        <text class="svg-ts" x="160" y="164">患者単位 Silo 分離 ／ 取得前アクセス制御 ／ Distance threshold</text>
+        <text class="svg-ts" x="56" y="184" style="fill:var(--text-faint)">テナントIDフィルタを強制（無フィルタクエリを完全禁止）</text>
+        <text class="svg-ts" x="732" y="164" text-anchor="end" style="fill:var(--text-faint)">→ 懸念(d) クロスリーク</text>
+
+        <!-- 中央警告: 取得本文=信頼境界外 -->
+        <rect class="svg-warn tipnode" x="14" y="208" width="732" height="44" rx="9" data-tip="本テーマの核心: ブロックチェーンで正当に復号・取得したカルテ本文であっても、ゼロ幅文字や白色テキストで悪意ある指令が仕込まれうる。取得データ＝信頼境界の外側として扱う。"/>
+        <text class="svg-tt" x="380" y="227" text-anchor="middle" style="fill:var(--c-caution)">⚠ 取得カルテ本文 ＝ 信頼境界の外側（間接プロンプトインジェクションの媒体）</text>
+        <text class="svg-ts" x="380" y="244" text-anchor="middle">正当に取得したデータでも「信頼できないコンテンツ」として扱う</text>
+
+        <!-- Layer 2 -->
+        <rect class="svg-plane tipnode" x="14" y="262" width="732" height="58" rx="9" data-tip="Layer 2（推論時）: 取得データを信頼境界外扱い、spotlighting（デリミタでシステム指示と分離）、Jailbreak検出、PII入出力フィルタ。間接プロンプトインジェクション(a)に対応。"/>
+        <text class="svg-num" x="28" y="286" style="fill:var(--accent)">L2</text>
+        <text class="svg-tt" x="56" y="286">推論時</text>
+        <text class="svg-ts" x="150" y="286">spotlighting ／ Jailbreak 検出 ／ PII 入出力フィルタ</text>
+        <text class="svg-ts" x="56" y="306" style="fill:var(--text-faint)">取得本文とシステム指示をデリミタで明示分離</text>
+        <text class="svg-ts" x="732" y="286" text-anchor="end" style="fill:var(--c-caution);font-weight:700">→ 懸念(a) 間接PI ★</text>
+
+        <!-- LLM 中央 -->
+        <rect class="svg-key tipnode" x="300" y="330" width="160" height="40" rx="9" data-tip="LLM 推論本体。TEE 内で、ガードレールとポリシーエンジンに挟まれて動作する。"/>
+        <text class="svg-tt" x="380" y="355" text-anchor="middle" style="fill:var(--kind-conclusion)">LLM 推論</text>
+
+        <!-- Layer 3 -->
+        <rect class="svg-on tipnode" x="14" y="380" width="732" height="58" rx="9" data-tip="Layer 3（出力・監査）: PHI漏洩監視、改ざん防止監査ログ（オンチェーンハッシュ）、Human-in-the-loop、インシデント対応。ログ(e)・hallucination(f)に対応。"/>
+        <text class="svg-num" x="28" y="404" style="fill:var(--accent)">L3</text>
+        <text class="svg-tt" x="56" y="404">出力・監査</text>
+        <text class="svg-ts" x="170" y="404">PHI 漏洩監視 ／ オンチェーン監査ハッシュ ／ Human-in-the-loop</text>
+        <text class="svg-ts" x="56" y="424" style="fill:var(--text-faint)">高影響アクションは人間承認ゲートを必須に</text>
+        <text class="svg-ts" x="732" y="404" text-anchor="end" style="fill:var(--text-faint)">→ 懸念(e)(f)</text>
+
+        <!-- 推論環境（横断・下） -->
+        <rect class="svg-val tipnode" x="14" y="448" width="732" height="44" rx="9" data-tip="推論環境（横断）: オンプレ or TEE、BAA、ZDR（ゼロデータ保持）、アテステーション。外部API送信(b)に対応。"/>
+        <text class="svg-tt" x="28" y="475">推論環境（横断）</text>
+        <text class="svg-ts" x="178" y="475">オンプレ / TEE ／ BAA・ZDR ／ アテステーション</text>
+        <text class="svg-ts" x="732" y="475" text-anchor="end" style="fill:var(--text-faint)">→ 懸念(b) 外部送信</text>
+
+        <!-- flow arrows down the center -->
+        <path class="svg-line" d="M380,130 L380,138" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M380,198 L380,206" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M380,252 L380,260" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M380,320 L380,328" marker-end="url(#arrow)"/>
+        <path class="svg-line" d="M380,370 L380,378" marker-end="url(#arrow)"/>
+      </svg>
+    </div>
+    <p class="sec-desc">参照フレームワーク: NIST AI RMF ／ OWASP LLM Top 10（2025）／ ISO/IEC 42001 ／ 仮名化ワークフロー（arXiv 2505.08728）。【確証〜論理導出】</p>
+  </section>
+
+  <!-- 6. ブロックチェーン統合 -->
+  <section id="s-blockchain">
+    <h2>ブロックチェーン統合 — オン/オフチェーンの分担</h2>
+    <p class="sec-desc">ブロックチェーンの役割は「コンテキストの供給」ではなく「<strong>同意ゲート＋アクセス制御＋改ざん耐性ある監査証跡</strong>」（既存 <a href="index.html#card-C1">C1</a> と一致）。実データと推論はオフチェーン／TEE で扱います。色は検証ビューアと共通で <span style="color:var(--accent-ink);font-weight:700">青＝オンチェーン</span>・<span style="color:var(--c-verified);font-weight:700">緑＝オフチェーン</span>。</p>
+
+    <div class="diagram">
+      <h3>図D: 記録層（オンチェーン）と実体層（オフチェーン）の分担</h3>
+      <p class="cap">オンチェーンには本文を一切置かず、ハッシュ・参照子・許可イベント・監査のみ。実データ・LLM 推論・重い暗号演算はオフチェーン／TEE。両者は鍵管理（C3 二者分散）で橋渡しされます。各要素にカーソルで補足。</p>
+      <svg viewBox="0 0 760 408" role="img" aria-labelledby="dDdesc">
+        <desc id="dDdesc">左がオンチェーン記録層（C1）で、暗号コミットメント、CID/IPFS参照、同意・許可イベント、アクセスログのハッシュ、AuditEvent/Merkle Root、AI説明の暗号証明を置く。右がオフチェーンで、暗号化EHR本体、TEE内のLLM推論処理、鍵生成・管理の一部、ABE/ZKP等の重い暗号演算を置く。中央下の帯が鍵管理（C3患者鍵＋病院鍵の二者分散・MA-ABE/閾値PRE）で両者を橋渡しする。本文は一切オンチェーンに置かない。</desc>
+
+        <!-- オンチェーン -->
+        <rect class="svg-box" x="14" y="14" width="352" height="300" rx="12" style="fill:color-mix(in srgb,var(--onchain) 55%,var(--surface))"/>
+        <text class="svg-tt" x="32" y="40" style="fill:var(--accent-ink)">オンチェーン（記録層・C1）</text>
+        <rect class="svg-on tipnode" x="32" y="54" width="316" height="36" rx="7" data-tip="記録コミットメント d = SHA-256(C‖T‖N)。実データの存在と完全性を、本文を載せずに固定する。"/>
+        <text class="svg-ts" x="190" y="76" text-anchor="middle">暗号コミットメント（ハッシュ）</text>
+        <rect class="svg-on tipnode" x="32" y="98" width="316" height="36" rx="7" data-tip="オフチェーン暗号化EHRの参照子。台帳はこのCIDだけを指す（C2）。"/>
+        <text class="svg-ts" x="190" y="120" text-anchor="middle">CID / IPFS 参照（C2）</text>
+        <rect class="svg-on tipnode" x="32" y="142" width="316" height="36" rx="7" data-tip="患者のEIP-712署名による許可付与・時間制限付き。grantPermissionBySig / revokePermission。"/>
+        <text class="svg-ts" x="190" y="164" text-anchor="middle">同意・許可イベント（時間制限付）</text>
+        <rect class="svg-on tipnode" x="32" y="186" width="316" height="36" rx="7" data-tip="誰がいつどのカルテをどのLLMに渡したかのアクセスログのハッシュ。本文は載せない。"/>
+        <text class="svg-ts" x="190" y="208" text-anchor="middle">アクセスログのハッシュ</text>
+        <rect class="svg-on tipnode" x="32" y="230" width="316" height="36" rx="7" data-tip="AuditEvent を Merkle 化し、Merkle Root(32B)のみアンカリング。個別包含証明はオフチェーン発行。"/>
+        <text class="svg-ts" x="190" y="252" text-anchor="middle">AuditEvent / Merkle Root</text>
+        <rect class="svg-on tipnode" x="32" y="274" width="316" height="32" rx="7" data-tip="BXHF型: SHAP説明のtop-k特徴量をJSON化→SHA-256→オンチェーン（精度依存の再現性問題は留保）。"/>
+        <text class="svg-ts" x="190" y="294" text-anchor="middle">AI 説明の暗号証明（任意）</text>
+
+        <!-- オフチェーン -->
+        <rect class="svg-box" x="394" y="14" width="352" height="300" rx="12" style="fill:color-mix(in srgb,var(--offchain) 55%,var(--surface))"/>
+        <text class="svg-tt" x="412" y="40" style="fill:var(--c-verified)">オフチェーン（実体層）</text>
+        <rect class="svg-off tipnode" x="412" y="54" width="316" height="50" rx="7" data-tip="暗号化EHR本体（FHIR＋臨床ノート）。IPFS/S3 に暗号化保存（C2）。"/>
+        <text class="svg-ts" x="570" y="76" text-anchor="middle">暗号化 EHR 本体</text>
+        <text class="svg-ts" x="570" y="92" text-anchor="middle" style="font-size:10px">FHIR ＋ 臨床ノート（IPFS/S3）</text>
+        <rect class="svg-off tipnode" x="412" y="112" width="316" height="50" rx="7" data-tip="LLM推論処理はTEE内（C10機密計算）。復号・取得・推論をハードウェア隔離領域に閉じ込める。"/>
+        <text class="svg-ts" x="570" y="134" text-anchor="middle">LLM 推論処理（TEE 内・C10）</text>
+        <text class="svg-ts" x="570" y="150" text-anchor="middle" style="font-size:10px">復号・取得・推論を隔離</text>
+        <rect class="svg-off tipnode" x="412" y="170" width="316" height="44" rx="7" data-tip="鍵生成・管理の一部はオフチェーン。MA-ABEの部分鍵発行・閾値PREの再暗号化等。"/>
+        <text class="svg-ts" x="570" y="197" text-anchor="middle">鍵生成・管理の一部</text>
+        <rect class="svg-off tipnode" x="412" y="222" width="316" height="44" rx="7" data-tip="ABE/ZKP等の重い暗号演算はオフチェーン。オンチェーンには検証結果・証明ハッシュのみ。"/>
+        <text class="svg-ts" x="570" y="249" text-anchor="middle">ABE / ZKP 等の重い暗号演算</text>
+        <rect class="svg-warn tipnode" x="412" y="274" width="316" height="32" rx="7" data-tip="間接プロンプトインジェクションの媒体。取得本文は信頼境界の外側として扱う（4層防御へ）。"/>
+        <text class="svg-ts" x="570" y="294" text-anchor="middle" style="fill:var(--c-caution)">⚠ 取得本文は信頼境界外として扱う</text>
+
+        <!-- 橋渡し: 鍵管理 -->
+        <path class="svg-flow-data" d="M412,72 L368,72" marker-end="url(#arrow-data)"/>
+        <text class="svg-ts" x="380" y="64" text-anchor="middle" style="font-size:10px">CID/ハッシュ</text>
+        <rect class="svg-key tipnode" x="14" y="330" width="732" height="62" rx="10" data-tip="鍵管理: C3「患者鍵＋病院鍵の二者分散」を MA-ABE（エスクローフリー）＋閾値PRE で具体化。病院クラウドは半信頼（暗号化EHRを保管するが復号不可）。"/>
+        <text class="svg-tt" x="380" y="358" text-anchor="middle" style="fill:var(--kind-conclusion)">鍵管理 — C3 二者分散（MA-ABE エスクローフリー ＋ 閾値 PRE）</text>
+        <text class="svg-ts" x="380" y="380" text-anchor="middle">患者鍵＋病院鍵は非共有・結託耐性。病院クラウドは「半信頼」＝保管するが復号不可</text>
+      </svg>
+    </div>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.2rem 0 .5rem">AuditEvent スキーマ（本文・氏名・生データは一切載せない）</h3>
+    <pre><code>AuditEvent {
+  event_id:          bytes32   // SHA-256(actor‖patient‖ts)
+  event_type:        string    // LLM_DATA_ACCESS | CONSENT_APPROVED | MODEL_INFERENCE | DATA_FETCH
+  actor_did:         string    // 医療者 / LLMエージェントの DID
+  patient_record_id: bytes32   // H(patient_id‖epoch_salt) ─ 患者IDは非記録
+  model_id / model_version_hash: string / bytes32   // モデル名+版 / 重みの SHA-256
+  consent_id_hash:   bytes32   // 同意トークンのハッシュ
+  data_scope_hash:   bytes32   // アクセス対象サブセットのハッシュ
+  timestamp:         uint256
+  access_status:     string    // GRANTED | DENIED | EMERGENCY_OVERRIDE
+  purpose:           string    // HIPAA 164.312(b) purpose of use
+}  // 任意: tee_enclave_id / zkp_proof_hash / session_key_hash</code></pre>
+    <div class="note"><strong>GDPR 第17条（忘れられる権利）との両立:</strong> 本文をオフチェーン暗号化＋ハッシュのみオンチェーンとし、消去は「オフチェーンデータ削除＋復号鍵の安全消去（<span class="term" data-term="key erasure">key erasure</span>）」でオンチェーンハッシュを事実上アクセス不能化。患者IDは <code>H(patient_id‖epoch_salt)</code> とし、消去時にソルトをローテーション／削除（EDPB Guidelines 02/2025 と整合）。【論理導出】</div>
+  </section>
+
+  <!-- 7. 規制マトリクス -->
+  <section id="s-regulation">
+    <h2>規制マトリクス — HIPAA / GDPR / 日本（C11）</h2>
+    <p class="sec-desc">本設計はすべて国際基準（HIPAA／GDPR／EDPB）ベースで具体化できますが、最大の非技術的障壁は<strong>日本の制度的空白</strong>（<a href="index.html#card-C11">C11</a>）です。観点ごとに3法域を対比します。</p>
+    <div class="matrix-wrap">
+      <table class="matrix reg">
+        <thead><tr><th scope="col">観点</th><th scope="col">HIPAA（米）</th><th scope="col">GDPR・EU</th><th scope="col">日本（C11）</th></tr></thead>
+        <tbody>
+          <tr>
+            <th scope="row">根拠・枠組み</th>
+            <td>45 CFR。2025改正で暗号化が <strong>mandatory</strong>（FIPS 140-3）、監査ログ6年保存、AIエージェントに固有IDトークン必須（共有APIキー不可）</td>
+            <td>GDPR ＋ EU AI Act（2025-08 施行、ハイリスク医療AIに透明性・監査・説明可能性）＋ EHDS（2025/327, 適用2029-03）</td>
+            <td>個人情報保護法。病歴・診療事実＝<strong>要配慮個人情報</strong>。次世代医療基盤法（オプトアウト方式）</td>
+          </tr>
+          <tr>
+            <th scope="row">同意・データ最小化</th>
+            <td><strong>最小必要原則</strong>。プロンプトが PHI を含めば全層（GW・キュー・キャッシュ・ベクトルDB・出力）が保護対象。BAA 必須</td>
+            <td>Art.9 健康データ＝特別カテゴリ（明示的同意）。データ最小化原則</td>
+            <td>ChatGPT 等への入力は27条1項違反の第三者提供（本人同意なし）。海外サービスは28条も。「名前を消せば匿名化」は誤り（提供元基準説）</td>
+          </tr>
+          <tr>
+            <th scope="row">自動意思決定（AI判断）</th>
+            <td>明文規定は限定的（BAA・最小必要で間接統制）</td>
+            <td><strong>Art.22</strong>＝自動処理のみの医療決定を禁止 ＝ <span class="term" data-term="Human-in-the-loop">Human-in-the-loop</span> 必須</td>
+            <td>個別規定は未整備。当面は臨床医レビューを介すのが現実的</td>
+          </tr>
+          <tr>
+            <th scope="row">削除権・ログ保持</th>
+            <td>45 CFR 164.312(b) 監査ログ。<strong>最低6年保存</strong>。PHI 本文はログに含めない</td>
+            <td>Art.17 忘れられる権利 → 対話ログ・埋め込み・FTデータの削除が難題。EDPB 02/2025 は <span class="term" data-term="key erasure">key erasure</span> を推奨</td>
+            <td>対話ログの保存・開示・削除指針は<strong>未整備</strong></td>
+          </tr>
+          <tr>
+            <th scope="row">本テーマ固有の含意</th>
+            <td>AIベンダー全員に BAA。プロンプト/出力/<strong>埋め込み</strong>の保持期間・削除保証を要確認</td>
+            <td>ハッシュ化データも個人データ／技術的不可能は免責にならない／パーミッションド BC 推奨</td>
+            <td><strong>対話ログの法的性質が未定義</strong>（診療録か業務ログか不明）。次世代医療基盤法はリアルタイム診療支援に不適用＝制度的空白。2027「医療情報特別法」まで継続見込み</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">当面の現実解（日本）: (a) 院内オンプレ／<span class="term" data-term="TEE">TEE</span> で PHI を院外に出さない、(b) 対話ログを診療録準拠で厳格管理、(c) 研究二次利用は明示同意 or オプトアウト要件を個別確認。なお制度は流動化中（内閣府が同意のあり方を再検討・個情法改正でAI学習利用の同意不要化の方向）ですが、齟齬・空白そのものは未解消です。【確証】</div>
+  </section>
+
+  <!-- 8. 未解決課題 -->
+  <section id="s-gaps">
+    <h2>未解決課題・研究ギャップ</h2>
+    <p class="sec-desc">2本の調査が挙げた未解決事項を、信頼度ラベル付きで統合しました。<strong>E2E ループ全体の不在</strong>は3 researcher が独立に確認しており、研究フロンティアの判定は堅固です。</p>
+    <div class="conf-legend" aria-label="信頼度ラベルの凡例">
+      <span class="lg-title">信頼度</span>
+      <span class="lg-item"><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span></span>
+      <span class="lg-item"><span class="badge badge-deduced"><span aria-hidden="true">⊢</span> 論理導出</span></span>
+      <span class="lg-item"><span class="badge badge-inferred"><span aria-hidden="true">≈</span> 状況推測</span></span>
+      <span class="lg-item"><span class="badge badge-uncertain"><span aria-hidden="true">?</span> 未確認</span></span>
+    </div>
+    <div class="grid" id="gaps-grid"></div>
+  </section>
+
+  <!-- 9. 既存検証との接続 -->
+  <section id="s-connect">
+    <h2>既存検証（C1–C11）との接続</h2>
+    <p class="sec-desc">本考察は検証ビューアの設計結論をどう補強・具体化するか。各カードから検証ビューアの該当結論へリンクします（別ページ <code>index.html</code> の該当カードに移動）。</p>
+    <div class="grid" id="connect-grid"></div>
+  </section>
+
+  <!-- 用語集 -->
+  <section id="s-glossary">
+    <h2>用語集</h2>
+    <p class="sec-desc">本ページ特有の専門用語・略語の一覧です。本文中の<span class="term-demo">下線付きの用語</span>にマウスを乗せる（またはキーボードでフォーカスする）と、同じ説明がツールチップで表示されます。検証ビューア（<a href="index.html#section-glossary">index の用語集</a>）も併せて参照してください。</p>
+    <div id="glossary-body" class="glossary"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>出典: 2本の考察レポート <code>exploration/llm-chatbot-ehr.md</code>・<code>exploration/e2e-consent-decrypt-context.md</code>（いずれも <code>research:controller-search</code>＝5並列調査→統合→品質判定 PASS、重視期間 2024–2026、一次/公式ソース＋学術 40件以上）。作成日 2026-05-26。</p>
+    <p>このページはオフラインで動作する単一 HTML（外部依存ゼロ・常時ライト）です。検証ビューア（外部事実・設計結論 C1–C11）は <a href="index.html">index.html</a> を参照。検証の詳細は <code>verification/research-report.md</code>。</p>
+  </div>
+</footer>
+
+<div id="svgtip" role="tooltip" aria-hidden="true"></div>
+
+<svg id="svg-defs" aria-hidden="true" width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--text-sub)"/>
+    </marker>
+    <marker id="arrow-perm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrow-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--c-verified)"/>
+    </marker>
+  </defs>
+</svg>
+
+<script type="application/json" id="app-data">
+{
+  "meta": { "title": "LLM×EHR 考察", "created": "2026-05-26" },
+  "terms": [
+    { "term": "RAG", "full": "Retrieval-Augmented Generation", "cat": "retrieval", "desc": "検索拡張生成。関連情報だけを外部から取得してLLMに渡す方式。狭義のベクトルRAGと、構造化取得（function calling）を含む広義がある。" },
+    { "term": "ベクトル検索", "full": "embedding RAG", "cat": "retrieval", "desc": "文をベクトル化し意味的近さで取得する方式。専門用語・標準ラベルの語彙一致には弱い面がある。" },
+    { "term": "BM25", "full": "", "cat": "retrieval", "desc": "語彙的（キーワード）検索のスコアリング手法。専門用語・標準ラベルの一致に強く、高速。" },
+    { "term": "CLEAR", "full": "Clinical Entity Augmented Retrieval", "cat": "retrieval", "desc": "ゼロショットNER→オントロジー拡張→正規表現マッチの構造化検索。NPJ Digital Medicine 2025で embedding RAG を F1・トークン・速度で上回ると実証。" },
+    { "term": "構造化ナビゲーション", "full": "", "cat": "retrieval", "desc": "FHIR階層やAPIをリソースタイプ指定で辿り、必要分だけfetchする方式。本調査が一次手段として推奨。" },
+    { "term": "function calling", "full": "", "cat": "retrieval", "desc": "LLMが定義済みの関数（API）を呼び出して構造化データを取得する仕組み。LLMonFHIRはこれをRAGと呼んでいた。" },
+    { "term": "reranking", "full": "", "cat": "retrieval", "desc": "一次取得した候補を再スコアリングして並べ替える後処理。大規模hybrid検索で精度を底上げする。" },
+    { "term": "MCP", "full": "Model Context Protocol", "cat": "retrieval", "desc": "LLMエージェントが外部データ・ツールへ接続する標準プロトコル。2025-03でOAuth2.1スタイルの認証が追加。" },
+    { "term": "lost in the middle", "full": "", "cat": "retrieval", "desc": "長いコンテキストの中ほどにある情報をLLMが見落としやすい現象。全量注入が不利になる一因。" },
+
+    { "term": "プロンプトインジェクション", "full": "OWASP LLM01", "cat": "security", "desc": "入力や取得文書に紛れた指令でLLMの動作を乗っ取る攻撃。OWASP LLM Top 10で2年連続1位。" },
+    { "term": "間接プロンプトインジェクション", "full": "", "cat": "security", "desc": "ユーザー入力でなく、取得した文書（カルテ本文・紹介状等）に仕込まれた指令による攻撃。本テーマ固有の最重要懸念。ゼロ幅文字や白色テキストで隠蔽される。" },
+    { "term": "spotlighting", "full": "", "cat": "security", "desc": "取得データとシステム指示をデリミタ等で明確に分離し、データを「信頼境界の外」として扱う防御手法。" },
+    { "term": "サイドチャネル攻撃", "full": "", "cat": "security", "desc": "処理時間・キャッシュ・出力長などの副次情報から秘密を推定する攻撃。TEEのハードウェア隔離だけでは防ぎきれない。" },
+    { "term": "Human-in-the-loop", "full": "HITL", "cat": "security", "desc": "高影響な判断・出力に人間のレビューを介在させること。GDPR Art.22やhallucination対策の核。" },
+    { "term": "ハルシネーション", "full": "hallucination", "cat": "security", "desc": "AIが事実でない内容をもっともらしく生成する現象。医療では患者安全に直結し、発生率は研究間で大きく異なる。" },
+    { "term": "差分プライバシー", "full": "differential privacy", "cat": "security", "desc": "ノイズ付与で個々のデータ寄与を秘匿する手法。εで強度を表現。メンバーシップ推論対策に使う。" },
+
+    { "term": "EIP-712", "full": "", "cat": "crypto", "desc": "型付き構造化データのハッシュと署名の標準。患者の同意を構造化して署名・オンチェーン検証できる。" },
+    { "term": "スマートコントラクト", "full": "", "cat": "crypto", "desc": "ブロックチェーン上で自動実行されるプログラム。同意ゲート・権限検証・監査記録を自動化する。" },
+    { "term": "ABE", "full": "Attribute-Based Encryption", "cat": "crypto", "desc": "「役割=医師」等の属性条件を満たす者だけが復号できる暗号方式。きめ細かなアクセス制御に向く。" },
+    { "term": "MA-ABE", "full": "Multi-Authority ABE", "cat": "crypto", "desc": "複数の鍵生成機関(KGC)が部分鍵を分散発行するABE。単一機関の侵害で全鍵を再構成できない（エスクローフリー）。C3の二者分散を概念的に実現。" },
+    { "term": "PRE", "full": "Proxy Re-Encryption", "cat": "crypto", "desc": "平文に戻さず「A宛て暗号文」を「B宛て暗号文」に変換し、鍵を渡さずに復号権限を委譲する暗号技術。" },
+    { "term": "閾値PRE", "full": "threshold PRE", "cat": "crypto", "desc": "再暗号化を複数プロキシにk-of-nで分散し、結託耐性を持たせたPRE。Umbral等。プロキシは両者の秘密鍵を要しない。" },
+    { "term": "ZKP", "full": "Zero-Knowledge Proof", "cat": "crypto", "desc": "秘密の中身を明かさずに「条件を満たす事実」だけを証明する暗号技術。同意条件充足の証明回路は本テーマの研究ギャップ。" },
+    { "term": "key erasure", "full": "鍵消去", "cat": "crypto", "desc": "復号鍵を安全に破棄することで暗号化データを事実上アクセス不能にする手法。GDPR第17条の代替的消去としてEDPBが推奨。" },
+
+    { "term": "TEE", "full": "Trusted Execution Environment", "cat": "compute", "desc": "CPU/GPU内の隔離された安全な実行環境。処理中のデータをホスト・他テナントから保護する。" },
+    { "term": "Confidential Computing", "full": "", "cat": "compute", "desc": "処理中のデータもTEEに閉じ込め、外部から覗けないようにする技術。GPU TEEのオーバーヘッドは4–8%（70B級でほぼ0）。" },
+    { "term": "リモートアテステーション", "full": "remote attestation", "cat": "compute", "desc": "TEEのコード・ハードウェアの完全性を遠隔から暗号的に検証する仕組み。ただし推論の意味論的正しさまでは証明できない。" },
+    { "term": "attestation-gated key release", "full": "", "cat": "compute", "desc": "アテステーション検証が通った場合にのみ鍵を解放する機構。鍵がTEE外に漏れない保証の核心。" },
+    { "term": "CiphertextForRecipient", "full": "", "cat": "compute", "desc": "AWS KMSがDecrypt時に平文鍵を返さず、アテステーション内の公開鍵で暗号化した鍵を返す仕組み。ホスト（親）は受け取るが復号できない。" },
+    { "term": "KMS", "full": "Key Management Service", "cat": "compute", "desc": "鍵の生成・保管・払い出しを管理するサービス。アテステーション条件付きの鍵リリースを行える。" },
+    { "term": "KV-Cacheタイミング攻撃", "full": "", "cat": "compute", "desc": "推論キャッシュのヒット/ミスの時間差から内容を推定するサイドチャネル攻撃。患者名×病名対応を95.4%精度で推定した実証がある。" },
+
+    { "term": "FHIR", "full": "Fast Healthcare Interoperability Resources", "cat": "standard", "desc": "HL7が策定する医療情報交換標準。情報をリソース単位で扱い、API重視で階層的にナビゲートできる。" },
+    { "term": "SMART on FHIR", "full": "", "cat": "standard", "desc": "FHIRにOAuth2.0/OpenID Connectの認可を組み合わせ、医療アプリ（LLMクライアント）を安全に認可する枠組み。" },
+    { "term": "AuditEvent", "full": "", "cat": "standard", "desc": "「誰が・いつ・誰のカルテを・どのモデルに渡したか」を本文を含めず記録する監査イベントスキーマ。HIPAA 164.312(b)/EDPB 02/2025と整合。" },
+
+    { "term": "HIPAA", "full": "Health Insurance Portability and Accountability Act", "cat": "regulation", "desc": "米国の医療情報プライバシー・セキュリティ法。最小必要原則とBAAを要求する。" },
+    { "term": "BAA", "full": "Business Associate Agreement", "cat": "regulation", "desc": "PHIを扱う事業者に義務付けられる契約。PHIを扱うAIベンダーにも必須。" },
+    { "term": "最小必要原則", "full": "minimum necessary", "cat": "regulation", "desc": "目的に必要な最小限のPHIだけを扱うというHIPAAの原則。RAG/構造化ナビによる最小注入と同方向に収束する。" },
+    { "term": "GDPR", "full": "General Data Protection Regulation", "cat": "regulation", "desc": "EUの一般データ保護規則。Art.9健康データ・Art.22自動判断・Art.17削除権が本テーマに直結。" },
+    { "term": "EDPB", "full": "European Data Protection Board", "cat": "regulation", "desc": "GDPRの統一解釈を示すEU機関。Guidelines 02/2025でブロックチェーンの個人データ処理指針を示した。" },
+    { "term": "次世代医療基盤法", "full": "", "cat": "regulation", "desc": "日本の法律。オプトアウト方式で医療情報を仮名加工し研究等に活用できるが、対象は認定事業者の研究開発目的に限られ、リアルタイム診療支援には不適用。" },
+    { "term": "ZDR", "full": "Zero Data Retention", "cat": "regulation", "desc": "入力・出力を保持しない運用契約・エンドポイント。外部API利用時のPHI保護に用いる。" }
+  ],
+  "findings": [
+    {
+      "id": "発見1", "conf": "verified", "flag": "研究フロンティア",
+      "title": "E2E ループ全体の明示実装は不在＝研究フロンティア",
+      "body": "「EIP-712 署名で同意ゲート → 対称鍵取得 → オフチェーン暗号 EHR 復号 → LLM にコンテキスト供給」を一貫実装した一次文献は 2026-05 時点で不在。同意（researcher-1）・鍵フロー（researcher-2）・TEE 推論（researcher-3）の3調査が独立して同じ空白を報告。一方、構成要素はすべて実コード／公式機構レベルまで具体化できる段階に達した。"
+    },
+    {
+      "id": "発見2", "conf": "verified", "flag": "前回結論の修正",
+      "title": "コンテキスト取得はベクトル RAG より構造化ナビ＋語彙検索が優位",
+      "body": "前回レポートの「ベクトル RAG が支配的設計」を一次ソースで修正。CLEAR（NPJ DM 2025）は NER＋正規表現の構造化検索が embedding RAG を F1 0.90 vs 0.86・入力トークン 1.1k vs 3.8k で上回ると実証。FHIR 文脈では構造化ナビ（function calling）を一次手段とし、非構造化ノートに CLEAR/BM25、大規模時のみ hybrid＋reranking を使うべき。"
+    },
+    {
+      "id": "発見3", "conf": "verified", "flag": "最重要セキュリティ",
+      "title": "取得したカルテ本文そのものが攻撃ベクターになる",
+      "body": "本テーマ固有の最重要懸念は間接プロンプトインジェクション。ブロックチェーンで正当に復号・取得したカルテであっても、本文にゼロ幅文字や白色テキストで悪意ある指令が仕込まれうる。「取得データ＝信頼境界の外側」として扱う多層防御が必須で、ブロックチェーン EHR でも回避できない。"
+    },
+    {
+      "id": "発見4", "conf": "verified", "flag": "TEE の限界",
+      "title": "TEE を使っても防げない残存リスクが実証されている",
+      "body": "KV-Cache タイミング攻撃で医療患者名×病名対応を 95.4% 精度推定（arXiv 2409.20002）、CPU Flush+Reload で API キー 80–90% 回復、BudgetLeak で RAG 知識ベースのメンバーシップ推定。さらに取得カルテ本文自体が間接 PI の媒体になる。「TEE ＝ 万能」ではなく、構成的なガードレールとサイドチャネル緩和が必要。"
+    },
+    {
+      "id": "発見5", "conf": "verified", "flag": "最大の非技術的障壁",
+      "title": "日本の制度的空白（C11）が最大の障壁",
+      "body": "対話ログの法的性質が未定義で、次世代医療基盤法はリアルタイム診療支援に適用されない。本設計はすべて国際基準（HIPAA/GDPR/EDPB）ベースで具体化できるが、日本固有適合は別途要検証。当面は院内オンプレ／TEE で PHI を院外に出さず、対話ログを診療録準拠で厳格管理するのが現実解。"
+    }
+  ],
+  "security": [
+    {
+      "id": "(a)", "sev": "最重要", "conf": "verified",
+      "title": "プロンプトインジェクション（直接＋間接）",
+      "attack": "直接インジェクションは医療助言文脈の実証で商用LLM全体94.4%成功。本テーマ固有の最重要は間接インジェクション ― RAGが取得するカルテ・医療文書に悪意ある指令を隠蔽（PDF/カルテポイズニング、EchoLeakのゼロクリックPII漏洩）。ユーザーは攻撃ペイロードを入力しない。",
+      "first": "取得データの信頼境界外扱い＋spotlighting",
+      "backup": "入力サニタイズ（ゼロ幅文字除去）、出力検証（許可リスト）、コンテンツ分類ゲートキーパー、配備前レッドチーミング",
+      "src": { "label": "OWASP LLM01:2025（公式）", "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/" }
+    },
+    {
+      "id": "(b)", "sev": "高", "conf": "verified",
+      "title": "外部 API 送信リスク",
+      "attack": "外部消費者向けAPIへのPHI送信は即・規制違反、対話ログの学習利用リスク。BAA未締結は「公開の場で患者ケースを議論するようなもの」。",
+      "first": "オンプレ／TEE 推論（PHIを境界外に出さない）",
+      "backup": "BAA、ZDR、PrivateLink、TEEアテステーション（学習不使用・指定ポリシー推論をクライアント側で検証）",
+      "src": { "label": "AWS Nitro Enclaves 医療向け公式ガイド", "url": "https://aws.amazon.com/blogs/compute/building-zero-trust-generative-ai-applications-in-healthcare-with-aws-nitro-enclaves/" }
+    },
+    {
+      "id": "(c)", "sev": "高", "conf": "verified",
+      "title": "患者本人認証・なりすまし防止",
+      "attack": "生成AI詐欺損失が2023年123億→2027年400億ドル見込みで患者ポータルが主要標的。エージェントに過剰な権限を与えると被害が拡大する。",
+      "first": "SMART on FHIR スコープ認可（リソース単位の粒度認可）",
+      "backup": "NIST IAL2本人確認（政府ID＋顔バイオメトリクス）、MFA、PKCE・短命トークン、AIエージェント固有ID、最小権限",
+      "src": { "label": "SMART on FHIR 解説", "url": "https://www.descope.com/learn/post/smart-on-fhir" }
+    },
+    {
+      "id": "(d)", "sev": "高", "conf": "verified",
+      "title": "クロスパティエント・リーク（マルチテナント分離）",
+      "attack": "他患者データの混入は致命的。失敗モード＝tenant_idフィルタ未適用、ノイジーネイバー、共有推論インフラの境界漏洩、テナント別鍵の隔離不備、ナレッジベース汚染の波及。",
+      "first": "患者単位 Silo 分離 ＋ 取得前アクセス制御",
+      "backup": "テナントIDフィルタの強制（無フィルタクエリ完全禁止）、文書/行レベルアクセス制御を取得前に検証、テナント別暗号鍵の隔離",
+      "src": { "label": "Privacy Challenges in RAG-Enhanced LLMs for Healthcare", "url": "https://arxiv.org/pdf/2511.11347" }
+    },
+    {
+      "id": "(e)", "sev": "中", "conf": "verified",
+      "title": "対話ログ・推論ログの扱い（C11 と接続）",
+      "attack": "PHIを含むLLMログは暗号化・アクセス制御が必要。メンバーシップ推論攻撃でファインチューニングLLMから特定患者の訓練データ包含が推定されうる。日本では対話ログの法的性質が未定義。",
+      "first": "ハッシュのみオンチェーン ＋ 本文はオフチェーン暗号化",
+      "backup": "訓練除外契約、削除保証（埋め込み含む）、診療録準拠管理、差分プライバシー＋フェデレーション学習",
+      "src": { "label": "Patient Privacy of LLMs: Scoping Review", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12680930/" }
+    },
+    {
+      "id": "(f)", "sev": "中", "conf": "verified",
+      "title": "Hallucination による医療誤情報",
+      "attack": "発生率は研究間で1.47%〜91.4%と広範。GPT-4の医療要約で1.47%だがうち44%がmajor（診断・管理に影響）。敵対的攻撃下では50〜82%まで上昇。捏造43%・否定30%で計画/評価セクションに多い。",
+      "first": "RAG グラウンディング ＋ Human-in-the-loop（臨床医レビュー）",
+      "backup": "引用元・根拠表示の義務化、粒度の細かいFact-checking、継続的免責表示、不確実性定量化",
+      "src": { "label": "Harm Reduction for LLM Use in Medicine (JMIR 2025)", "url": "https://www.jmir.org/2025/1/e75849" }
+    }
+  ],
+  "gaps": [
+    { "id": "G1", "conf": "verified", "title": "E2E ループ全体の明示実装が不在", "body": "「EIP-712 同意→復号→LLMコンテキスト」を一貫実装した一次文献は未確認。researcher-1/2/3 が独立に同じ空白を報告＝研究フロンティアの判定は堅固。本プロジェクトの貢献余地そのもの。" },
+    { "id": "G2", "conf": "verified", "title": "ZKP「同意条件充足」回路", "body": "MediChainAI は宣言のみ、TeleZK-L2 はバイタル値の範囲証明であって「同意条件充足」の証明回路ではない。同意充足ZKP回路の具体実装は未確認。" },
+    { "id": "G3", "conf": "uncertain", "title": "ABE 秘密鍵の TEE リリース", "body": "attestation-gated key release は対称コンテンツ鍵が主対象。ABE秘密鍵（属性ベース複合鍵素材）をTEEへアテステーション連動でリリースする具体実装は未確認。" },
+    { "id": "G4", "conf": "verified", "title": "TEE 内 RAG の完全公式実装不在", "body": "AWS/Azure 公式は直接推論のみ（RAG未統合）。連合RAG（arXiv）やFull-TEE RAG（Fortanix/Opaque）は存在するが技術詳細非公開。SGXメモリ制限と大容量EHRインデックスの非整合が障壁。" },
+    { "id": "G5", "conf": "verified", "title": "性能/プライバシー税とサイドチャネル残存", "body": "GPU TEE は4–8%（70B級でほぼ0）だが、KV-Cache/Flush+Reload/BudgetLeak 等のサイドチャネルが残存。構造化ナビは CLEAR で約70%トークン削減と緩和に寄与。" },
+    { "id": "G6", "conf": "deduced", "title": "鍵管理の複雑性統合", "body": "MA-ABE × 閾値PRE × 二者分散 × TEE鍵リリースの統合は概念的に可能だが完全実装例なし。患者鍵紛失時の回復（C3が示す課題）も残る。" },
+    { "id": "G7", "conf": "verified", "title": "間接プロンプトインジェクション", "body": "正当に復号・取得したカルテ本文自体が攻撃媒体。取得データを信頼境界外扱いする多層防御が必須（本テーマの核心）。" },
+    { "id": "G8", "conf": "deduced", "title": "「同意通り推論」の証明限界", "body": "リモートアテステーションはコード・HWの完全性を証明できるが、推論の意味論的正しさ（consent scope遵守）は別途TEE内ガードレール/ポリシーエンジンで担保する構成的アプローチが必要。" },
+    { "id": "G9", "conf": "deduced", "title": "C3 二者分散 × LLM 統合の厳密実装", "body": "MA-ABEエスクローフリー鍵生成（PMC12979818）でC3を具体化できるが、当該論文のLLMは属性抽出ツールであり、ABE/PRE復号後のEHRをLLMが受信して推論する統合は不在。" },
+    { "id": "G10", "conf": "uncertain", "title": "GDPR 鍵削除消去の法的確定性", "body": "EDPBは key erasure を推奨技術とするが、各国DPAの解釈に依存。LLMプロンプトのGDPR該当性も含め法的確定性は未確立。" },
+    { "id": "G11", "conf": "verified", "title": "日本の制度的空白（C11）", "body": "対話ログの法的性質が未定義（診療録か業務ログか不明）。本設計は国際基準ベースで、日本固有適合は別途要検証。2027「医療情報特別法」まで空白継続見込み。" },
+    { "id": "G12", "conf": "inferred", "title": "日本語 EHR 特有の手法・攻撃ベクター", "body": "日本語EHR特有の埋め込み手法・攻撃ベクターは学術的に希薄。日本語のBM25（形態素解析）動作は本調査の対象外で、別途検証が必要。" }
+  ],
+  "connections": [
+    { "cid": "C1", "ctitle": "BC は同意・権限・監査の記録層", "status": "強化", "how": "焦点1の同意スマートコントラクトと焦点4の AuditEvent スキーマが直接裏付け。本文非記録（EDPB 02/2025）で一貫し、記録層用途を補強する。" },
+    { "cid": "C2", "ctitle": "暗号化オフチェーン＋CID 参照", "status": "強化", "how": "レコードコミットメント d=SHA-256(C‖T‖N) と IPFS/S3 暗号化保存が裏付け。実データ・推論・重い暗号演算をオフチェーンに置く分担を具体化。" },
+    { "cid": "C3", "ctitle": "患者・病院ハイブリッド鍵管理（二者分散）", "status": "具体化", "how": "MA-ABE エスクローフリー鍵生成（PMC12979818）が二者分散を具体化（病院クラウドは半信頼＝保管するが復号不可）。ただし LLM を受信者とする統合は未実装＝研究ギャップ。" },
+    { "cid": "C10", "ctitle": "LLM は説明支援に限定＋機密計算", "status": "強化", "how": "NVIDIA H100/B200・Azure CI・AWS Nitro の公式フローと Corvex B200 本番実証が「初期本番期」を裏付け。実装事例は大半が患者説明・カルテ理解支援に用途を限定し C10 と整合。" },
+    { "cid": "C11", "ctitle": "研究利用は同意前提で仮名化収集", "status": "変化なし", "how": "GDPR/HIPAA 要件は国際基準で具体化できるが、日本の対話ログの制度的空白は未解決のまま。最大の非技術的障壁として残る。" }
+  ]
+}
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var DATA;
+  try { DATA = JSON.parse(document.getElementById('app-data').textContent); }
+  catch(e){ document.body.insertAdjacentHTML('afterbegin','<p style="color:red;padding:1rem">データ読み込みエラー: '+e.message+'</p>'); return; }
+
+  var TERMS = {}; DATA.terms.forEach(function(t){ TERMS[t.term]=t; });
+  function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  var TERM_RE = new RegExp('(' + Object.keys(TERMS).sort(function(a,b){ return b.length - a.length; }).map(escRe).join('|') + ')', 'g');
+  var BADGE = {
+    verified:{label:'確証',icon:'✓',cls:'verified'},
+    deduced:{label:'論理導出',icon:'⊢',cls:'deduced'},
+    inferred:{label:'状況推測',icon:'≈',cls:'inferred'},
+    uncertain:{label:'未確認',icon:'?',cls:'uncertain'}
+  };
+  var STATUS_CHIP = {
+    '強化':'chip-strengthen', '具体化':'chip-concrete', '研究ギャップ':'chip-gap', '変化なし':'chip-nochange'
+  };
+
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
+  function termize(escapedText, seen){
+    return escapedText.replace(TERM_RE, function(m){
+      if(seen){ if(seen[m]) return m; seen[m] = true; }
+      return '<span class="term" data-term="'+attr(m)+'" tabindex="0">'+m+'</span>';
+    });
+  }
+  function badge(conf){
+    var b = BADGE[conf]||BADGE.uncertain;
+    return '<span class="badge badge-'+b.cls+'"><span aria-hidden="true">'+b.icon+'</span> '+b.label+'</span>';
+  }
+
+  // findings
+  document.getElementById('findings-grid').innerHTML = DATA.findings.map(function(f){
+    var seen = {};
+    return '<article class="card" data-conf="'+f.conf+'">'
+      +'<div class="card-head">'+badge(f.conf)+'<span class="card-id">'+esc(f.id)+'</span><span class="card-flag">'+esc(f.flag||'')+'</span></div>'
+      +'<h3 class="card-title">'+termize(esc(f.title), seen)+'</h3>'
+      +'<p class="card-body">'+termize(esc(f.body), seen)+'</p>'
+      +'</article>';
+  }).join('');
+
+  // security concerns
+  document.getElementById('security-grid').innerHTML = DATA.security.map(function(s){
+    var seen = {};
+    var src = s.src ? '<div class="sources"><strong>主な出典:</strong><ul><li><a href="'+attr(s.src.url)+'" target="_blank" rel="noopener">'+esc(s.src.label)+'</a></li></ul></div>' : '';
+    return '<article class="card" data-conf="'+s.conf+'" data-sev="'+attr(s.sev)+'">'
+      +'<div class="card-head">'+badge(s.conf)+'<span class="card-id">'+esc(s.id)+'</span><span class="card-flag sev-'+attr(s.sev)+'">'+esc(s.sev)+(s.sev==='最重要'?' ★':'')+'</span></div>'
+      +'<h3 class="card-title">'+termize(esc(s.title), seen)+'</h3>'
+      +'<p class="card-body">'+termize(esc(s.attack), seen)+'</p>'
+      +'<div class="mitig">'
+        +'<div class="mitig-row first"><span class="k">第一防御</span><span>'+termize(esc(s.first), seen)+'</span></div>'
+        +'<div class="mitig-row backup"><span class="k">補完防御</span><span>'+termize(esc(s.backup), seen)+'</span></div>'
+      +'</div>'+src
+      +'</article>';
+  }).join('');
+
+  // gaps
+  document.getElementById('gaps-grid').innerHTML = DATA.gaps.map(function(g){
+    var seen = {};
+    return '<article class="card" data-conf="'+g.conf+'">'
+      +'<div class="card-head">'+badge(g.conf)+'<span class="card-id">'+esc(g.id)+'</span></div>'
+      +'<h3 class="card-title">'+termize(esc(g.title), seen)+'</h3>'
+      +'<p class="card-body">'+termize(esc(g.body), seen)+'</p>'
+      +'</article>';
+  }).join('');
+
+  // connections to existing conclusions (link to index.html)
+  document.getElementById('connect-grid').innerHTML = DATA.connections.map(function(c){
+    var seen = {};
+    var chip = STATUS_CHIP[c.status]||'chip-nochange';
+    return '<article class="card" data-conf="verified">'
+      +'<div class="card-head"><span class="card-id">'+esc(c.cid)+'</span><span class="card-flag">既存結論との接続</span></div>'
+      +'<h3 class="card-title"><a href="index.html#card-'+esc(c.cid)+'" style="text-decoration:none">'+termize(esc(c.ctitle), seen)+'</a></h3>'
+      +'<p class="card-body">'+termize(esc(c.how), seen)+'</p>'
+      +'<p class="statusline">本考察での位置づけ: <span class="chip '+chip+'">'+esc(c.status)+'</span></p>'
+      +'<p class="related">→ <a href="index.html#card-'+esc(c.cid)+'">検証ビューアで '+esc(c.cid)+' を見る</a></p>'
+      +'</article>';
+  }).join('');
+
+  // glossary render
+  var CAT_LABELS = {retrieval:'取得・検索（RAG / 構造化ナビ）',security:'セキュリティ・攻撃',crypto:'暗号・鍵・同意',compute:'計算環境（TEE / KMS）',standard:'標準・相互運用',regulation:'規制・法制度'};
+  var CAT_ORDER = ['retrieval','security','crypto','compute','standard','regulation'];
+  (function(){
+    var gb = document.getElementById('glossary-body'); if(!gb) return;
+    var byCat = {};
+    DATA.terms.forEach(function(t){ (byCat[t.cat]=byCat[t.cat]||[]).push(t); });
+    var html = '';
+    CAT_ORDER.forEach(function(cat){
+      var items = byCat[cat]; if(!items) return;
+      html += '<div class="gloss-cat"><h3>'+esc(CAT_LABELS[cat]||cat)+'</h3><dl class="gloss-list">';
+      items.forEach(function(t){
+        html += '<dt>'+esc(t.term)+(t.full?' <span class="gloss-full">'+esc(t.full)+'</span>':'')+'</dt><dd>'+esc(t.desc)+'</dd>';
+      });
+      html += '</dl></div>';
+    });
+    gb.innerHTML = html;
+  })();
+
+  // tooltips (figure elements + glossary terms), shared element
+  var tip = document.getElementById('svgtip');
+  function placeTip(x, y){
+    var w = tip.offsetWidth, h = tip.offsetHeight, m = 12;
+    var px = x + 14, py = y + 14;
+    if(px + w > window.innerWidth - m) px = window.innerWidth - w - m;
+    if(py + h > window.innerHeight - m) py = y - h - 14;
+    if(py < m) py = m; if(px < m) px = m;
+    tip.style.left = px + 'px'; tip.style.top = py + 'px';
+  }
+  function reveal(){ tip.classList.add('show'); tip.removeAttribute('aria-hidden'); }
+  function showHTML(html, x, y){ tip.innerHTML = html; reveal(); placeTip(x, y); }
+  function showText(text, x, y){ tip.textContent = text; reveal(); placeTip(x, y); }
+  function hideTip(){ tip.classList.remove('show'); tip.setAttribute('aria-hidden', 'true'); }
+  // single mousemove handler: follow cursor whenever a tooltip is visible
+  document.body.addEventListener('mousemove', function(e){ if(tip.classList.contains('show')) placeTip(e.clientX, e.clientY); });
+  // figure elements (static): plain-text tooltip, role=button (interactive)
+  [].slice.call(document.querySelectorAll('[data-tip]')).forEach(function(el){
+    el.setAttribute('tabindex','0'); el.setAttribute('role','button'); el.setAttribute('aria-label', el.getAttribute('data-tip'));
+    el.addEventListener('mouseenter', function(e){ showText(el.getAttribute('data-tip'), e.clientX, e.clientY); });
+    el.addEventListener('mouseleave', hideTip);
+    el.addEventListener('focus', function(){ var r = el.getBoundingClientRect(); showText(el.getAttribute('data-tip'), r.left + r.width/2, r.top + r.height/2); });
+    el.addEventListener('blur', hideTip);
+  });
+  // glossary terms (delegated): rich HTML tooltip
+  function termTipHTML(key){
+    var t = TERMS[key]; if(!t) return esc(key);
+    return '<strong>'+esc(t.term)+(t.full?' <span class="tip-full">'+esc(t.full)+'</span>':'')+'</strong><br>'+esc(t.desc);
+  }
+  document.body.addEventListener('mouseover', function(e){
+    var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
+    showHTML(termTipHTML(el.getAttribute('data-term')), e.clientX, e.clientY);
+  });
+  document.body.addEventListener('mouseout', function(e){
+    var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
+    if(e.relatedTarget && el.contains(e.relatedTarget)) return;
+    hideTip();
+  });
+  document.body.addEventListener('focusin', function(e){
+    var el = e.target.closest ? e.target.closest('.term') : null; if(!el) return;
+    var r = el.getBoundingClientRect(); showHTML(termTipHTML(el.getAttribute('data-term')), r.left + r.width/2, r.top + r.height/2);
+  });
+  document.body.addEventListener('focusout', function(e){
+    if(e.target.closest && e.target.closest('.term')) hideTip();
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hideTip(); });
+})();
+</script>
+</body>
+</html>
