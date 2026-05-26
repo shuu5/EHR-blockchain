@@ -220,6 +220,45 @@ footer a{font-weight:600}
 .skip{position:absolute; left:-999px}
 .skip:focus{left:1rem; top:1rem; background:var(--surface); padding:.5rem .8rem; z-index:100; border:1px solid var(--accent); border-radius:8px}
 
+/* ---- reality-check chapter（現実チェック） ---- */
+.flag-reality{font-family:var(--mono); font-size:.64rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink); background:color-mix(in srgb,var(--accent) 12%,var(--surface)); border:1px solid color-mix(in srgb,var(--accent) 30%,var(--border)); padding:.18rem .55rem; border-radius:999px}
+/* chapter opener callout（headline の派生・章扉） */
+.chapter{position:relative; overflow:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 6%,var(--surface)),var(--surface-2)); border:1px solid var(--border); border-radius:var(--radius); padding:1.3rem 1.4rem 1.2rem 1.6rem; box-shadow:var(--shadow); margin:0 0 1.5rem}
+.chapter::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:linear-gradient(var(--accent),var(--kind-conclusion))}
+.chapter .kicker{font-family:var(--mono); font-size:.7rem; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--accent-ink); margin:0 0 .4rem}
+.chapter h3{margin:.1rem 0 .55rem; font-size:clamp(1.1rem,1rem + .6vw,1.35rem); font-weight:800; line-height:1.45}
+.chapter p{margin:.4rem 0; font-size:.95rem}
+.chapter strong{color:var(--text)}
+.chapter-nav{display:flex; flex-wrap:wrap; gap:.45rem; margin:.85rem 0 .1rem; counter-reset:cn}
+.chapter-nav a{display:inline-flex; align-items:baseline; gap:.4rem; text-decoration:none; color:var(--text); font-weight:600; font-size:.8rem; padding:.36rem .7rem; border:1px solid var(--border); border-radius:8px; background:var(--surface); box-shadow:var(--shadow-sm); transition:border-color .15s,background .15s,transform .1s}
+.chapter-nav a::before{counter-increment:cn; content:counter(cn); font-family:var(--mono); font-weight:700; color:var(--accent)}
+.chapter-nav a:hover{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); transform:translateY(-1px)}
+/* verdict chips（成否ラベル） */
+.vchip{display:inline-block; font-family:var(--mono); font-size:.66rem; font-weight:700; letter-spacing:.02em; padding:.1rem .5rem; border-radius:999px; border:1px solid currentColor; white-space:nowrap}
+.v-ok{color:var(--c-verified); background:color-mix(in srgb,var(--c-verified) 12%,transparent)}
+.v-fail{color:var(--c-unverifiable); background:color-mix(in srgb,var(--c-unverifiable) 11%,transparent)}
+.v-mid{color:var(--c-partial); background:color-mix(in srgb,var(--c-partial) 12%,transparent)}
+.v-prog{color:var(--accent); background:color-mix(in srgb,var(--accent) 11%,transparent)}
+.v-na{color:var(--c-pending); background:color-mix(in srgb,var(--c-pending) 12%,transparent)}
+table.matrix td.cell-fail{color:var(--c-unverifiable); font-weight:700; background:color-mix(in srgb,var(--c-unverifiable) 8%,var(--surface))}
+/* two-column compare（脅威の重心移動） */
+.compare{display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; margin:.2rem 0 1.3rem}
+.cpanel{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.05rem 1.2rem; box-shadow:var(--shadow-sm); border-top:4px solid var(--c-pending)}
+.cpanel.elim{border-top-color:var(--c-verified)}
+.cpanel.resid{border-top-color:var(--c-caution)}
+.cpanel h4{margin:.1rem 0 .15rem; font-size:1.02rem; font-weight:800; display:flex; align-items:center; gap:.45rem; flex-wrap:wrap}
+.cpanel .cp-sub{margin:.1rem 0 .75rem; font-size:.82rem; color:var(--text-sub); line-height:1.55}
+.tledger{list-style:none; margin:0; padding:0; display:grid; gap:.55rem}
+.tledger li{display:grid; grid-template-columns:auto 1fr; gap:.55rem; align-items:baseline; font-size:.89rem; line-height:1.6}
+.tmark{flex:none; font-family:var(--mono); font-size:.6rem; font-weight:700; letter-spacing:.03em; padding:.12rem .42rem; border-radius:6px; text-align:center; align-self:start; margin-top:.15rem}
+.tmark.gone{color:var(--c-verified); background:color-mix(in srgb,var(--c-verified) 12%,var(--surface)); border:1px solid color-mix(in srgb,var(--c-verified) 30%,var(--border))}
+.tmark.stay{color:var(--c-caution); background:color-mix(in srgb,var(--c-caution) 12%,var(--surface)); border:1px solid color-mix(in srgb,var(--c-caution) 30%,var(--border))}
+.tledger li.struck .tt{color:var(--text-faint); text-decoration:line-through; text-decoration-color:color-mix(in srgb,var(--c-pending) 55%,transparent)}
+.tledger li .tt b{color:var(--text)}
+.tledger li.star .tt{color:var(--c-caution)}
+.tledger li.star .tt b{color:var(--c-caution)}
+@media(max-width:680px){ .compare{grid-template-columns:1fr} }
+
 /* ---- responsive: phones & tablets ---- */
 @media(max-width:720px){
   .toc a{padding:.55rem .85rem}
@@ -249,7 +288,7 @@ footer a{font-weight:600}
     <a class="backlink" href="index.html">← 検証ビューア（外部事実・設計結論 C1–C11）へ戻る</a>
     <p class="eyebrow">LLM × EHR 統合 考察</p>
     <h1>ブロックチェーン管理EHRを LLM に渡す<br>— 同意 → 復号 → コンテキスト取得の E2E 統合</h1>
-    <p class="lead">検証ビューア（C1–C11）の先にある<strong>2本の探索的考察</strong>を可視化したものです。患者の同意に基づき LLM が暗号化カルテを復号してコンテキストとして取得する<strong>エンドツーエンド統合</strong>の具体設計、最重要のセキュリティ懸念、そして「<strong>ベクトルRAGより構造化ナビゲーション優位</strong>」という実証的修正を整理します。各主張には <strong>信頼度ラベル</strong>（確証 / 論理導出 / 状況推測 / 未確認）を付与しています。</p>
+    <p class="lead">検証ビューア（C1–C11）の先にある<strong>2本の探索的考察</strong>を可視化したものです。患者の同意に基づき LLM が暗号化カルテを復号してコンテキストとして取得する<strong>エンドツーエンド統合</strong>の具体設計、最重要のセキュリティ懸念、そして「<strong>ベクトルRAGより構造化ナビゲーション優位</strong>」という実証的修正を整理します。さらに後半の「<strong>現実チェック</strong>」では、院内LLMの脅威モデル・BCの必要十分性・海外の統合事例・断片化のナッシュ均衡から、この構想が<strong>どんな前提で成立するか</strong>を問い直します。各主張には <strong>信頼度ラベル</strong>（確証 / 論理導出 / 状況推測 / 未確認）を付与しています。</p>
     <nav class="toc" aria-label="目次">
       <span class="toc-title">目次</span>
       <a href="#s-overview">概要・最重要発見</a>
@@ -260,6 +299,10 @@ footer a{font-weight:600}
       <a href="#s-blockchain">ブロックチェーン統合</a>
       <a href="#s-regulation">規制マトリクス</a>
       <a href="#s-gaps">未解決課題</a>
+      <a href="#s-reality-threat">脅威の重心移動</a>
+      <a href="#s-reality-bc">BC は必要十分か</a>
+      <a href="#s-reality-integration">単一統合は起こるか</a>
+      <a href="#s-reality-nash">ナッシュ均衡とメタ結論</a>
       <a href="#s-connect">既存検証との接続</a>
       <a href="#s-glossary">用語集</a>
     </nav>
@@ -662,6 +705,252 @@ footer a{font-weight:600}
     <div class="grid" id="gaps-grid"></div>
   </section>
 
+  <!-- 現実チェック① 脅威の重心移動（院内LLMという前提） -->
+  <section id="s-reality-threat">
+    <div class="chapter">
+      <p class="kicker">現実チェック — Reality Check</p>
+      <h3>この構想は、どんな前提で成立するか</h3>
+      <p>ここまでは「技術的にどう実装するか」を扱いました。ここからは視点を引いて、<strong>2本の批判的再検証レポート</strong>（院内LLMの脅威モデル・BC必要性・患者アクセス・統合現実性＝<strong>85ソース</strong>／海外の統合事例＝<strong>94ソース</strong>、いずれも critic 判定 PASS）に基づき、「<strong>そもそもこの構想はどんな前提が成立したときに活きるのか</strong>」を4つの問いで現実チェックします。結論を先取りすると ― ブロックチェーンは技術的必然ではなく、<strong>trustless な多機関・患者主権の法的強制</strong>という前提に賭けた条件付き設計であり、現実解はむしろ<strong>連携（federation）＋標準化</strong>です。</p>
+      <nav class="chapter-nav" aria-label="現実チェックの4つの問い">
+        <a href="#s-reality-threat">院内LLMで懸念は消えるか</a>
+        <a href="#s-reality-bc">BC は必要十分か</a>
+        <a href="#s-reality-integration">単一統合は起こるか</a>
+        <a href="#s-reality-nash">なぜ断片化は続くのか</a>
+      </nav>
+    </div>
+
+    <h2>脅威の重心移動 — 院内LLMという前提 <span class="flag-reality">現実チェック ①</span></h2>
+    <p class="sec-desc">「院内（オンプレ・<span class="term" data-term="シングルテナント">シングルテナント</span>）で動かせば、今回のセキュリティ懸念の多くは当たらないのでは？」というユーザーの直感を検証しました。結論は<strong>概ね支持</strong> ― 外部クラウドAPI特有の脅威は構造的に消滅する一方、LLM と内部の人・データに起因する脅威は残り、脅威の重心が「<strong>外部送信</strong>」から「<strong>取得内容・運用</strong>」へ移動します。</p>
+
+    <div class="compare">
+      <div class="cpanel elim">
+        <h4><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span> 院内化で「消える」脅威</h4>
+        <p class="cp-sub">いずれも「外部の他者とインフラを共有する」ことに起因 → シングルテナント院内完結で<strong>前提そのものが消滅</strong>する。</p>
+        <ul class="tledger">
+          <li class="struck"><span class="tmark gone">消滅</span><span class="tt">外部API送信によるユーザー推論攻撃（出力プロービングで希少コホート適応を判定）</span></li>
+          <li class="struck"><span class="tmark gone">消滅</span><span class="tt">マルチテナントのサイドチャネル（中間アクティベーション反転）</span></li>
+          <li class="struck"><span class="tmark gone">消滅</span><span class="tt">KV-Cacheタイミング攻撃（クロステナントのプロンプトプレフィックス漏洩）</span></li>
+          <li class="struck"><span class="tmark gone">消滅</span><span class="tt">クラウド運営者・データセンター事業者による入力／出力／中間表現の閲覧</span></li>
+          <li class="struck"><span class="tmark gone">消滅</span><span class="tt">WAN通信のタイミング・パケットサイズからのPHI密度推定</span></li>
+        </ul>
+      </div>
+      <div class="cpanel resid">
+        <h4><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span> 院内化でも「残る」脅威</h4>
+        <p class="cp-sub">「LLM という仕組み自体」と「内部の人・データ」に起因し、院内化では消えない。<strong>重心が内容・運用へ移動</strong>する。</p>
+        <ul class="tledger">
+          <li class="star"><span class="tmark stay">残存 ★</span><span class="tt"><b>間接プロンプトインジェクション（最重要）</b> ― 臨床LLM実験で攻撃成功率 94.4%（4ターン）・禁忌薬推薦 91.7%。最新モデルでも脆弱。</span></li>
+          <li><span class="tmark stay">残存</span><span class="tt"><b>内部者脅威</b>（臨床スタッフ／データエンジニア／システム管理者の3類型）</span></li>
+          <li><span class="tmark stay">残存</span><span class="tt"><b>ハルシネーション</b>（本番化でフィードバック率が 5.8%→1.3% に低下しモニタリング困難化）</span></li>
+          <li><span class="tmark stay">残存</span><span class="tt">ログ漏洩（デバッグ／ETLログにPHI混入）・独自ファインチューニング時の訓練データ記憶化</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note"><strong>TEE／リモートアテステーションの要否:</strong> 完全院内オンプレ＋信頼できる職員＋物理セキュリティ＋単一テナントなら、<span class="term" data-term="TEE">TEE</span>・<span class="term" data-term="リモートアテステーション">リモートアテステーション</span>は<strong>必須でない</strong>（検証相手が存在しない）。TEE が要るのは ①インフラ運営者を信頼できない（外部委託DC）②モデルIP保護 ③複数病院フェデレーション ― の3ケース。ただし大規模モデル（32B+）で TEE オーバーヘッドは1%未満（H100/H200 でネイティブ性能 95–99% 維持）＝「不要だが、入れても実害は小さい」水準。【論理導出】</div>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.4rem 0 .5rem">実証: 「院内完結 ＋ オープンウェイトLLM ＋ SMART on FHIR」は査読論文レベルで稼働済み</h3>
+    <p class="sec-desc" style="margin-bottom:1rem">BC を介さずとも、原典構想に近い「カルテを LLM にコンテキストとして渡す」運用は院内オンプレで現実に動いています。</p>
+    <div class="grid">
+      <article class="card" data-conf="verified">
+        <div class="card-head"><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span><span class="card-id">ベルギー</span><span class="card-flag">査読（PLOS Digital Health 2025/12）</span></div>
+        <h3 class="card-title">Cliniques Universitaires Saint-Luc</h3>
+        <p class="card-body">Qwen3-235B（FP8）＋vLLM・H200×8（約40万USD）を院内に構築し、<strong>Epic に SMART on FHIR で直接埋め込み</strong>。「患者データは病院インフラを出ない」原則。GDPR DPIA 完了・EU MDR Class IIa 届出・EU AI Act 準拠。本番5ヶ月で<strong>1,028ユーザー・14,910会話</strong>。</p>
+        <div class="sources"><strong>主な出典:</strong><ul><li><a href="https://journals.plos.org/digitalhealth/article?id=10.1371%2Fjournal.pdig.0001141" target="_blank" rel="noopener">Implementation of LLMs in EHR — PLOS Digital Health（2025/12）</a></li></ul></div>
+      </article>
+      <article class="card" data-conf="verified">
+        <div class="card-head"><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span><span class="card-id">日本・栃木</span><span class="card-flag">2025/04</span></div>
+        <h3 class="card-title">那須赤十字病院</h3>
+        <p class="card-body">リコー製 70B（日英中）を<strong>オンプレ完結</strong>で導入し、電子カルテから退院サマリを自動生成。院内ネットワーク分離・<strong>クラウド送信なし</strong>。同様の構成は織田病院（佐賀）でも稼働。</p>
+        <div class="sources"><strong>主な出典:</strong><ul><li><a href="https://jp.ricoh.com/release/2025/0430_1" target="_blank" rel="noopener">リコー、那須赤十字病院にリコー製LLMをオンプレ提供（公式PR 2025/04）</a></li></ul></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- 現実チェック② ブロックチェーンは必要十分か -->
+  <section id="s-reality-bc">
+    <h2>ブロックチェーンは必要十分か <span class="flag-reality">現実チェック ②</span></h2>
+    <p class="sec-desc">「BC による患者同意・患者アクセスは本当に必要か。中央集権ソブリンクラウドや標準APIで代替できないか」。結論 ― <strong>大半のケースで代替可能</strong>。現実の旗艦事例は BC を使わない中央集権で、患者アクセスは OAuth2/OIDC＋<span class="term" data-term="SMART on FHIR">SMART on FHIR</span> で技術的に十分。BC が必要十分なのは <span class="term" data-term="trustless">trustless</span> な多機関の限定シナリオに限られます。</p>
+
+    <div class="headline">
+      <p class="kicker">本調査の最重要発見</p>
+      <h3>医療ソブリンクラウドの旗艦事例（富士通×IBM）は、ブロックチェーンを一切使わない中央集権モデルだった。</h3>
+      <p>2026-05-15 に正式発表された富士通×日本IBM の医療ソブリンクラウドは、<span class="term" data-term="Oracle Alloy">Oracle Alloy</span> ベースの<strong>中央集権クラウド</strong>を共通基盤に電子カルテを稼働させる構成です。<strong>ブロックチェーン／分散台帳／スマートコントラクトへの言及は、調査した全ての一次・二次ソースで皆無</strong>でした。同意・アクセス制御はソブリンクラウド＋（推定）SMART on FHIR 系 IAM が担います。「医療ソブリンクラウドは BC で患者同意を実装する」という想定は、現実の旗艦事例では成立していません。<span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span></p>
+      <p class="tbl-cap" style="margin:.6rem 0 0">出典: <a href="https://global.fujitsu/ja-jp/pr/news/2026/05/15-01" target="_blank" rel="noopener">富士通・日本IBM 協業具体化（公式PR 2026/05/15）</a> ／ <a href="https://www.datacenterdynamics.com/en/news/fujitsu-to-use-oracle-alloy-for-sovereign-cloud-in-japan/" target="_blank" rel="noopener">Fujitsu to use Oracle Alloy（DCD）</a></p>
+    </div>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.3rem 0 .5rem">患者アクセス — OAuth2/OIDC＋SMART on FHIR で十分（BC は上位補完レイヤー）</h3>
+    <p class="sec-desc" style="margin-bottom:.9rem">米 CMS-9115-F（2021）／CMS-0057-F（2024）が Patient Access API（FHIR＋OAuth2＋SMART）を義務化（初回メトリクス報告 2026-03-31）。日本も <span class="term" data-term="JP-CLINS">JP-CLINS</span>＋マイナポータルAPI（<span class="term" data-term="電子カルテ情報共有サービス">電子カルテ情報共有サービス</span>、2025/02 モデル事業）で実現し、いずれも<strong>ブロックチェーンを使いません</strong>。多くの論文が「BC 同意 ≠ OAuth2 の代替、BC は上位補完レイヤー」と位置づけます。</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">観点</th><th scope="col">OAuth2/OIDC＋SMART on FHIR</th><th scope="col">BC 同意</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">実装成熟度</th><td><strong>高（米で義務化済）</strong></td><td>低〜中（PoC 中心）</td></tr>
+          <tr><th scope="row">UX</th><td>EHRポータル統合・標準認可画面</td><td>ウォレット操作の障壁</td></tr>
+          <tr><th scope="row">失効</th><td>RFC7009 ＋ 期限・短命トークン</td><td>スマートコントラクトで即時自動</td></tr>
+          <tr><th scope="row">監査ログ</th><td>中央管理（理論上は改ざん可）</td><td><strong>分散・不変台帳</strong></td></tr>
+          <tr><th scope="row">スケーラビリティ</th><td><strong>高</strong></td><td>中（$2–6/tx）</td></tr>
+          <tr><th scope="row">同意の粒度</th><td>スコープ単位</td><td><strong>目的・期間・提供者ごと細粒度</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-cap">BC が技術的に勝るのは「分散・不変な監査」と「細粒度の同意」のみ。患者アクセスの<strong>必須要件</strong>とする根拠はない。出典: <a href="https://www.cms.gov/priorities/burden-reduction/overview/interoperability/frequently-asked-questions/patient-access-api" target="_blank" rel="noopener">CMS Patient Access API FAQ</a> ／ <a href="https://hl7.org/fhir/smart-app-launch/" target="_blank" rel="noopener">SMART App Launch v2.2.0（HL7）</a> ／ <a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/iryou/johoka/denkarukyouyuu.html" target="_blank" rel="noopener">電子カルテ情報共有サービス（厚労省）</a></p>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.5rem 0 .5rem">BC が「必要十分」になる5条件（ほぼ AND 条件）</h3>
+    <p class="sec-desc" style="margin-bottom:.9rem">Wüst &amp; Gervais フレームワークと医療 tertiary review が収束する条件。すべて揃って初めて BC が中央集権 DB に優位します。</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">#</th><th scope="col">条件</th><th scope="col">具体シナリオ（共通項：単一の信頼できる運用者を置けない国際的・競合的環境）</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>信頼できる中央管理者が不在（相互不信の競合複数機関）</td><td rowspan="5">グローバル多施設臨床試験／クロスボーダーゲノム共有コンソーシアム／希少疾患の国際患者コンソーシアム／医薬品サプライチェーン</td></tr>
+          <tr><td>2</td><td>データ完全性が臨床アウトカム・法的責任に直結</td></tr>
+          <tr><td>3</td><td>参加者アイデンティティが事前確認可能（permissioned 前提）</td></tr>
+          <tr><td>4</td><td>患者の直接制御が法的要請（患者主権規制）</td></tr>
+          <tr><td>5</td><td>外部監査機関の独立検証が必要</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-cap"><span class="badge badge-deduced"><span aria-hidden="true">⊢</span> 論理導出</span> 出典: <a href="https://www.explorationpub.com/Journals/edht/Article/101114" target="_blank" rel="noopener">Do you need a blockchain in healthcare? — tertiary review（2024）</a> ／ <a href="https://internationaldataspaces.org/is-blockchain-needed-for-consent-management-in-data-spaces/" target="_blank" rel="noopener">Is blockchain needed for consent management?（IDS, 2024）</a></p>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.5rem 0 .5rem">BC カルテの本番実態 — 撤退・頓挫・ピボットの一覧</h3>
+    <p class="sec-desc" style="margin-bottom:.9rem">「患者カルテを BC 上に格納し、実患者データで本番稼働」したシステムは<strong>事実上皆無</strong>（2024–2025 の複数の独立した学術システマティックレビューが一致）。唯一の「本番」エストニア <span class="term" data-term="KSI">KSI</span> も、実態は監査ログのハッシュ証明（本体は Oracle DB）です。</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">プロジェクト</th><th scope="col">実装</th><th scope="col">現状</th><th scope="col">撤退・不在の理由</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">MedRec（MIT）</th><td>Ethereum SC でアクセス権制御・本体オフチェーン</td><td><span class="vchip v-fail">プロトタイプ止</span></td><td>規制負担・既存EMR統合困難（サイト消失）</td></tr>
+          <tr><th scope="row">Gem Health</th><td>Philips＋プライベート Ethereum（2016）</td><td><span class="vchip v-fail">医療撤退</span></td><td>EMR置換不可・患者インセンティブ欠如（2022 買収）</td></tr>
+          <tr><th scope="row">Akiri（AMA系）</th><td>BC活用 NaaS・$10M 調達</td><td><span class="vchip v-fail">廃業</span></td><td>医療参入障壁・ビジネスモデル立証困難（PitchBook 確認）</td></tr>
+          <tr><th scope="row">Hashed Health</th><td>DLT医療コンサル／ベンチャースタジオ（2016）</td><td><span class="vchip v-mid">ピボット</span></td><td>BC固有価値を現場で立証できず・汎用デジタルヘルスへ転換</td></tr>
+          <tr><th scope="row">Patientory</th><td>プライベートBC（2017 ICO）</td><td><span class="vchip v-fail">トークン約99.9%下落</span></td><td>患者にカルテ保存料を課金する設計ミス・事業継続性に疑問</td></tr>
+          <tr><th scope="row">IBM（Watson Health／Blockchain）</th><td>Hyperledger Fabric</td><td><span class="vchip v-fail">2023/4 EOL</span></td><td>Watson Health 2022 売却・医療BC分野から撤退</td></tr>
+          <tr><th scope="row">エストニア KSI（補助役で部分成功）</th><td>ハッシュ完全性証明のみ・本体は中央DB</td><td><span class="vchip v-ok">本番稼働</span></td><td>＝「カルテ格納BC」ではない。監査ログのハッシュ証明に限定</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-cap"><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span> 出典: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12071524/" target="_blank" rel="noopener">Systematic Literature Review 2025（82研究）</a> ／ <a href="https://pitchbook.com/profiles/company/223951-24" target="_blank" rel="noopener">PitchBook — Akiri（Out of Business）</a> ／ <a href="https://e-estonia.com/blockchain-healthcare-estonian-experience/" target="_blank" rel="noopener">Blockchain & healthcare: the Estonian experience（e-Estonia）</a></p>
+  </section>
+
+  <!-- 現実チェック③ 単一統合は起こるか -->
+  <section id="s-reality-integration">
+    <h2>単一統合は起こるか — 海外事例とソブリンウォッシング <span class="flag-reality">現実チェック ③</span></h2>
+    <p class="sec-desc">「日本で医療カルテを単一<span class="term" data-term="ソブリンクラウド">ソブリンクラウド</span>に統合するのは現実的か」を 94 ソースの海外事例で検証しました。結論 ― <strong>単一中央DB統合は構造的に失敗しやすく</strong>、成功は連携型か小国／単一州の強制統一に限られます。「ソブリンクラウド」自体も主権の形骸化（<span class="term" data-term="ソブリンウォッシング">ソブリンウォッシング</span>）に陥りやすいことが分かりました。</p>
+
+    <div class="diagram">
+      <h3>図E: 集中型（単一中央DB）vs 連携型（federation）</h3>
+      <p class="cap">左は全機関を単一中央DBに接続する集中型（英NPfIT の Spine 等）＝単一障害点・過大な野心で失敗しやすい。右は各機関がデータを保持し交換層で相互運用する連携型（X-Road 等）＝中央DBを作らず成功している。各要素にカーソル（またはフォーカス）で補足。</p>
+      <svg viewBox="0 0 760 320" role="img" aria-labelledby="dEdesc">
+        <desc id="dEdesc">左半分は集中型: 中央DB（Spine）を核に4つの医療機関が放射状に接続するスター型。単一障害点で、英NPfITは約100〜127億ポンドで廃止。右半分は連携型: 4つの機関が中央DBを介さず交換プロトコル層（X-Road）を通じて相互運用する。各機関がデータを保持し、エストニア・北欧・米TEFCAで成功している。</desc>
+
+        <!-- 集中型 -->
+        <rect class="svg-plane tipnode" x="14" y="44" width="352" height="248" rx="12" data-tip="集中型＝全機関を単一中央DB（英NPfITのSpine等）に接続。単一障害点・過大な野心・現場の不支持・コスト超過で、大規模国家EHRでは失敗しやすい。"/>
+        <text class="svg-tt" x="32" y="70" style="fill:var(--c-caution)">集中型（単一中央DB）</text>
+        <rect class="svg-warn tipnode" x="140" y="150" width="100" height="42" rx="9" data-tip="中央DBが全データを集約。ここが詰まると全体が止まる（単一障害点）。要件不確定のまま大型契約・トップダウンで破綻した。"/>
+        <text class="svg-t" x="190" y="176" text-anchor="middle" font-weight="700">中央DB</text>
+        <rect class="svg-box" x="40" y="92" width="84" height="30" rx="7"/><text class="svg-ts" x="82" y="111" text-anchor="middle">機関</text>
+        <rect class="svg-box" x="256" y="92" width="84" height="30" rx="7"/><text class="svg-ts" x="298" y="111" text-anchor="middle">機関</text>
+        <rect class="svg-box" x="40" y="220" width="84" height="30" rx="7"/><text class="svg-ts" x="82" y="239" text-anchor="middle">機関</text>
+        <rect class="svg-box" x="256" y="220" width="84" height="30" rx="7"/><text class="svg-ts" x="298" y="239" text-anchor="middle">機関</text>
+        <path class="svg-line" d="M88,122 L168,152"/><path class="svg-line" d="M292,122 L212,152"/>
+        <path class="svg-line" d="M88,220 L168,190"/><path class="svg-line" d="M292,220 L212,190"/>
+        <text class="svg-ts" x="190" y="282" text-anchor="middle" style="fill:var(--c-caution);font-weight:700">英NPfIT＝約£100–127億で廃止</text>
+
+        <!-- 連携型 -->
+        <rect class="svg-plane tipnode" x="394" y="44" width="352" height="248" rx="12" data-tip="連携型（federation）＝各機関がデータを保持し、X-Road等の交換層で安全に相互運用。中央DBを作らない。エストニア・北欧・米TEFCAが採用し成功している。"/>
+        <text class="svg-tt" x="412" y="70" style="fill:var(--c-verified)">連携型（federation）</text>
+        <rect class="svg-key tipnode" x="470" y="156" width="200" height="30" rx="9" data-tip="交換プロトコル層（例: X-Road）。データを集約せず、機関間の安全な受け渡しだけを担う。"/>
+        <text class="svg-t" x="570" y="176" text-anchor="middle" font-weight="700">交換層（X-Road）</text>
+        <rect class="svg-off" x="420" y="92" width="84" height="30" rx="7"/><text class="svg-ts" x="462" y="111" text-anchor="middle">機関＋DB</text>
+        <rect class="svg-off" x="636" y="92" width="84" height="30" rx="7"/><text class="svg-ts" x="678" y="111" text-anchor="middle">機関＋DB</text>
+        <rect class="svg-off" x="420" y="220" width="84" height="30" rx="7"/><text class="svg-ts" x="462" y="239" text-anchor="middle">機関＋DB</text>
+        <rect class="svg-off" x="636" y="220" width="84" height="30" rx="7"/><text class="svg-ts" x="678" y="239" text-anchor="middle">機関＋DB</text>
+        <path class="svg-line" d="M462,122 L500,156"/><path class="svg-line" d="M678,122 L640,156"/>
+        <path class="svg-line" d="M462,220 L500,186"/><path class="svg-line" d="M678,220 L640,186"/>
+        <text class="svg-ts" x="570" y="282" text-anchor="middle" style="fill:var(--c-verified);font-weight:700">エストニア／北欧／米TEFCA＝成功・進行</text>
+      </svg>
+    </div>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.2rem 0 .5rem">海外事例の成否マトリクス（国 × 方式 × 結果）</h3>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">国／システム</th><th scope="col">アーキテクチャ</th><th scope="col">結果</th><th scope="col">主因・日本との差</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">英 NPfIT</th><td>集中（Spine 単一DB）</td><td><span class="vchip v-fail">失敗</span></td><td>トップダウン・過大な野心・医師不支持・£100–127億で2013廃止</td></tr>
+          <tr><th scope="row">エストニア</th><td>連携（X-Road・中央DBなし）＋KSI</td><td><span class="vchip v-ok">成功</span></td><td>eID・人口130万（日本の約1/100）・法的義務化・ベンダー中立</td></tr>
+          <tr><th scope="row">デンマーク sundhed.dk</th><td>連携（分散＋単一UI）</td><td><span class="vchip v-ok">成功</span></td><td>CPR番号（1968〜）・MedCom 標準・政治統一</td></tr>
+          <tr><th scope="row">フィンランド Kanta</th><td>集中に近い全国FHIR</td><td><span class="vchip v-ok">成功</span></td><td>小国・強い政治意思・段階実装</td></tr>
+          <tr><th scope="row">スウェーデン 1177</th><td>ハイブリッド（地域自律＋国家基準）</td><td><span class="vchip v-ok">成功</span></td><td>「疎結合・フェデレーション」を国家参照アーキテクチャに明記</td></tr>
+          <tr><th scope="row">米 TEFCA</th><td>連携（QHIN ネットワーク）</td><td><span class="vchip v-prog">進行中</span></td><td>Epic 寡占（42.3%）が事実上の標準を形成。単一国家DBなし</td></tr>
+          <tr><th scope="row">独 gematik ePA</th><td>集中インフラ（TI）</td><td><span class="vchip v-mid">普及低迷</span></td><td>オプトアウト自動付与でアカウントのみ増・実利用率 3.6%</td></tr>
+          <tr><th scope="row">豪 My Health Record</th><td>集中（ADHA 中央DB）</td><td><span class="vchip v-mid">論争</span></td><td>参加90%もGP約1/3未使用・不作為同意とプライバシー批判</td></tr>
+          <tr><th scope="row">カナダ</th><td>州別断片化（連邦制）</td><td><span class="vchip v-fail">課題継続</span></td><td>任意参加。アルバータ州のみ Epic 強制で「唯一の州統一」</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-cap"><span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span> パターン: <strong>単一中央DB統合を試みた例（英NPfIT・初期豪MHR・オンタリオ州）はほぼ失敗。成功は連携型か、小国／単一州での強制統一に限られる。</strong> 出典: <a href="https://spectrum.ieee.org/npfit-dismantled-uk-government-announces-end-of-its-127-billion-national-electronic-health-record-program" target="_blank" rel="noopener">NPfIT Dismantled（IEEE Spectrum）</a> ／ <a href="https://e-estonia.com/programme/digital-healthcare/" target="_blank" rel="noopener">Digital healthcare（e-Estonia）</a> ／ <a href="https://hitconsultant.net/2025/05/05/klas-epic-dominates-2024-ehr-market-share/" target="_blank" rel="noopener">KLAS: Epic Dominates 2024（HIT Consultant）</a> ／ <a href="https://www.joeplangeinstitute.org/data_and_health/electronic-patient-record-germany/" target="_blank" rel="noopener">Germany's ePA Adoption（Joep Lange）</a></p>
+
+    <div class="caveat"><strong>ソブリンウォッシング ― 「主権」を標榜しても実態はハイパースケーラー依存:</strong> 仏 Health Data Hub は SNDS（国民健康保険DB）含む医療データを Microsoft Azure でホスト → 2022年に<strong>最高行政裁判所が EU データ保護原則違反と判決</strong> → 仏国産 Scaleway へ移行（2024年に「主権保証ホスティング」を法律で義務化）。「いかなる契約も <span class="term" data-term="CLOUD Act">CLOUD Act</span> を上書きできない」が決定打でした。EU <span class="term" data-term="Gaia-X">Gaia-X</span> は対抗すべき米大手を加盟に招き「紙の怪物」と評され失敗。2025年には Microsoft France GM が仏上院で「仏市民データが外国当局に渡らないとは保証できない」と証言。<strong>Amazon・Microsoft・Google が欧州クラウド市場の約70%を支配し、欧州プロバイダーは2%未満</strong>。<span class="term" data-term="データ所在地">データ所在地</span>≠データ主権であり、富士通×IBM もこの「管理されたハイパースケーラー」型に分類されます。真の主権を技術的に実現できた例は S3NS（<span class="term" data-term="SecNumCloud">SecNumCloud</span> 取得）／SCS 程度です。<span class="badge badge-verified"><span aria-hidden="true">✓</span> 確証</span></div>
+    <p class="tbl-cap">出典: <a href="https://www.euronews.com/health/2026/04/24/france-moves-public-health-data-from-microsoft-to-french-cloud-provider" target="_blank" rel="noopener">France moves health data to French cloud（Euronews）</a> ／ <a href="https://euro-stack.com/blog/2025/2/gaia-x-failure" target="_blank" rel="noopener">Gaia-X — Chronicle of a Failure Foretold（EuroStack）</a> ／ <a href="https://www.cio.com/article/4009314/how-sovereign-is-microsofts-sovereign-cloud-really.html" target="_blank" rel="noopener">How sovereign is Microsoft's Sovereign Cloud really?（CIO）</a> ／ <a href="https://www.thalesgroup.com/en/news-centre/insights/group/s3ns-receives-secnumcloud-qualification-turning-point-trusted-cloud" target="_blank" rel="noopener">S3NS receives SecNumCloud（Thales）</a></p>
+  </section>
+
+  <!-- 現実チェック④ 断片化はナッシュ均衡・メタ結論 -->
+  <section id="s-reality-nash">
+    <h2>なぜ断片化は続くのか — ナッシュ均衡とメタ結論 <span class="flag-reality">現実チェック ④</span></h2>
+    <p class="sec-desc">断片化は「怠慢」ではなく「<strong>合理的な安定均衡</strong>」です。ベンダー・病院・政府の三者すべてにとって現状維持が支配戦略であり、誰も一方的に動く動機を持ちません。最後に、4つの現実チェックを統合したメタ結論を示します。</p>
+
+    <div class="diagram">
+      <h3>図F: 断片化を維持する三者のナッシュ均衡</h3>
+      <p class="cap">EHRベンダー・病院・政府の三者は、それぞれにとって「共有しない／現状維持／任意参加」が支配戦略になります。結果として誰も一方的に逸脱せず、<strong>断片化が安定均衡</strong>として持続します。各ノードにカーソル（またはフォーカス）で補足。</p>
+      <svg viewBox="0 0 760 380" role="img" aria-labelledby="dFdesc">
+        <desc id="dFdesc">三角形の頂点に3つの主体を配置。上が政府（強制標準化は双方の抵抗を招くため任意参加が政治均衡）、左下がEHRベンダー（共有容易化は競合への乗り換えを容易にするため非共有が支配戦略）、右下が病院（データ共有は患者流出リスクのため非共有が支配戦略）。中央に「断片化＝安定したナッシュ均衡：誰も一方的に逸脱する動機を持たない」。</desc>
+
+        <path class="svg-dash" d="M380,104 L150,300"/>
+        <path class="svg-dash" d="M380,104 L610,300"/>
+        <path class="svg-dash" d="M220,306 L540,306"/>
+
+        <rect class="svg-tee tipnode" x="270" y="170" width="220" height="64" rx="10" data-tip="3者全員にとって現状維持が合理的で、誰も一方的逸脱のインセンティブを持たない。スイッチングコストは先行・確実、便益は将来・不確実。セマンティック相互運用の持続的ガバナンス不在（コモンズの悲劇）も同型。"/>
+        <text class="svg-tt" x="380" y="197" text-anchor="middle" style="fill:var(--kind-conclusion)">断片化 = 安定均衡</text>
+        <text class="svg-ts" x="380" y="217" text-anchor="middle">誰も一方的に逸脱する動機を持たない</text>
+
+        <rect class="svg-val tipnode" x="288" y="48" width="184" height="56" rx="10" data-tip="政府: 強制標準化はベンダー・医療機関双方の抵抗を招く。日本では医療機関の自律性と政府信頼の現状から、診療報酬加算による誘導（任意参加）が政治均衡になる。"/>
+        <text class="svg-tt" x="380" y="72" text-anchor="middle" style="fill:var(--accent)">政府</text>
+        <text class="svg-ts" x="380" y="92" text-anchor="middle">強制は抵抗 → 任意参加が均衡</text>
+
+        <rect class="svg-warn tipnode" x="36" y="300" width="190" height="62" rx="10" data-tip="EHRベンダー: データ共有を容易にすると競合製品への乗り換えも容易になる。ゆえに情報ブロッキング（不合理な高価格等）で非共有を選ぶのが支配戦略。Epic寡占とネットワーク効果が固着を強める。"/>
+        <text class="svg-tt" x="131" y="326" text-anchor="middle" style="fill:var(--c-caution)">EHRベンダー</text>
+        <text class="svg-ts" x="131" y="346" text-anchor="middle">共有＝乗換容易化 → 非共有</text>
+
+        <rect class="svg-warn tipnode" x="534" y="300" width="190" height="62" rx="10" data-tip="病院: 患者データを共有すると患者が他院へ流出するリスク。フィーサービス制度では重複検査削減が収入減に直結し、共有しないことが経済合理的になる。"/>
+        <text class="svg-tt" x="629" y="326" text-anchor="middle" style="fill:var(--c-caution)">病院</text>
+        <text class="svg-ts" x="629" y="346" text-anchor="middle">共有＝患者流出 → 非共有</text>
+      </svg>
+    </div>
+    <p class="tbl-cap"><span class="badge badge-inferred"><span aria-hidden="true">≈</span> 状況推測</span> ナッシュ均衡としての定式化は理論的説明であり、一次根拠は技術ブログ／Medium 中心（査読経済学での直接定式化は限定的）。情報ブロッキング・Epic 寡占などの個別事実は査読・公式統計で確証。出典: <a href="https://www.softwareseni.com/vendor-lock-in-economics-understanding-the-nash-equilibrium-you-are-already-in/" target="_blank" rel="noopener">Vendor Lock-In Economics: Nash Equilibrium</a> ／ <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7973451/" target="_blank" rel="noopener">Information blocking remains prevalent（PMC）</a> ／ <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11005444/" target="_blank" rel="noopener">Political Economy of Digital Health（JMIR/PMC）</a></p>
+
+    <h3 style="font-size:1.05rem;font-weight:800;margin:1.4rem 0 .5rem">統合成功国の6条件 — 日本の充足評価</h3>
+    <p class="sec-desc" style="margin-bottom:.9rem">成功国（エストニア／デンマーク／フィンランド）に共通する条件と、日本の状況の対比。日本は大部分を（少なくとも従来は）欠いています。</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">成功の必要条件</th><th scope="col">日本の状況</th><th scope="col">充足</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">普遍的な国民識別子</th><td>マイナンバーはあるが誤登録事故・プライバシー不信が深刻</td><td><span class="vchip v-fail">✕（現状）</span></td></tr>
+          <tr><th scope="row">小規模人口・高い均質性</th><td>1.26億人（エストニアの約90倍）→ 統合コストが桁違い</td><td><span class="vchip v-fail">✕</span></td></tr>
+          <tr><th scope="row">公営医療・強力な単一支払者</th><td>公的保険はあるが医療機関は独立法人（国公私混在）</td><td><span class="vchip v-mid">△</span></td></tr>
+          <tr><th scope="row">長期的な政治統一・一貫ガバナンス</th><td>—</td><td><span class="vchip v-na">データ不足</span></td></tr>
+          <tr><th scope="row">高い政府信頼</th><td>マイナンバー問題等で低下中</td><td><span class="vchip v-fail">✕（現状）</span></td></tr>
+          <tr><th scope="row">先行的なデジタル国家基盤</th><td>EMR普及が極端に不均一（※2012年/COVID期の古いデータ。近年改善の可能性）</td><td><span class="vchip v-mid">△〜✕</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-cap"><span class="badge badge-deduced"><span aria-hidden="true">⊢</span> 論理導出</span> 日本は成功の必要条件の大部分を欠き、断片化が安定均衡として続く構造的条件が揃う。ただし国内統計は古く、電子カルテ情報共有サービス等で改善が進む可能性に留意（最新統計での再評価が望ましい）。</p>
+
+    <div class="headline" style="margin-top:1.5rem">
+      <p class="kicker">メタ結論</p>
+      <h3>原典のブロックチェーンは「技術的必然」ではなく「条件付き設計」</h3>
+      <p>4つの現実チェックを統合すると ― <strong>①</strong> 院内LLMは外部API系の懸念を消すが、間接プロンプトインジェクション等は残す。<strong>②</strong> BC同意は旗艦事例で採用されず、中央集権ソブリンクラウド＋SMART on FHIR が代替する。<strong>③</strong> 患者アクセスは標準APIで十分。<strong>④</strong> 単一統合は海外で繰り返し失敗し、断片化は安定均衡として続く。皮肉にも、この「<strong>断片化・多機関・相互不信</strong>」の状況こそ BC が理論上もっとも正当化されるシナリオですが、現実の連携手段は FHIR／全国医療情報プラットフォームが先行し、BC は補完層に留まります。</p>
+      <p>したがって原典の BC は、<strong>trustless な多機関・患者主権の法的強制という前提が成立したら活きる「条件付き設計」</strong>と理解するのが最も整合的です（既存 <a href="index.html#card-C1">C1</a>「BC＝同意・権限・監査の記録層」と一致）。現実解は単一統合ではなく<strong>連携（federation）＋標準化</strong>であり、日本の全国医療情報プラットフォーム構想はこの方向にあります。残る最大の非技術的障壁は、依然として<strong>日本の制度的空白</strong>（<a href="index.html#card-C11">C11</a>）です。</p>
+    </div>
+  </section>
+
   <!-- 9. 既存検証との接続 -->
   <section id="s-connect">
     <h2>既存検証（C1–C11）との接続</h2>
@@ -679,7 +968,7 @@ footer a{font-weight:600}
 
 <footer>
   <div class="wrap">
-    <p>出典: 2本の考察レポート <code>exploration/llm-chatbot-ehr.md</code>・<code>exploration/e2e-consent-decrypt-context.md</code>（いずれも <code>research:controller-search</code>＝5並列調査→統合→品質判定 PASS、重視期間 2024–2026、一次/公式ソース＋学術 40件以上）。作成日 2026-05-26。</p>
+    <p>出典: 4本の探索レポート ― 前半（E2E設計・セキュリティ）は <code>exploration/llm-chatbot-ehr.md</code>・<code>exploration/e2e-consent-decrypt-context.md</code>、後半「現実チェック」は <code>exploration/onprem-bc-necessity.md</code>（85ソース）・<code>exploration/integration-feasibility-cases.md</code>（94ソース）。いずれも <code>research:controller-search</code>＝サブエージェント並列調査→統合→品質判定 PASS、重視期間 2024–2026。作成日 2026-05-26（「現実チェック」章を追補）。</p>
     <p>このページはオフラインで動作する単一 HTML（外部依存ゼロ・常時ライト）です。検証ビューア（外部事実・設計結論 C1–C11）は <a href="index.html">index.html</a> を参照。検証の詳細は <code>verification/research-report.md</code>。</p>
   </div>
 </footer>
@@ -819,7 +1108,37 @@ footer a{font-weight:600}
     { "term": "提供元基準説", "full": "", "cat": "regulation", "desc": "第三者提供の該当性を「提供元にとって個人データか」で判断する解釈。" },
     { "term": "第三者提供", "full": "", "cat": "regulation", "desc": "個人データを第三者に渡すこと。日本では原則として本人同意を要する。" },
     { "term": "データ最小化原則", "full": "data minimisation", "cat": "regulation", "desc": "目的の達成に必要な最小限のデータのみを処理するGDPRの原則。" },
-    { "term": "オプトアウト", "full": "opt-out", "cat": "regulation", "desc": "本人が拒否しない限り利用を認める方式。事前の明示同意(オプトイン)と対比される。" }
+    { "term": "オプトアウト", "full": "opt-out", "cat": "regulation", "desc": "本人が拒否しない限り利用を認める方式。事前の明示同意(オプトイン)と対比される。" },
+
+    { "term": "シングルテナント", "full": "single tenant", "cat": "compute", "desc": "1組織が専有しインフラを他者と共有しない構成。院内オンプレ単一テナントでは、外部API送信やマルチテナント由来のサイドチャネルが構造的に消える。" },
+    { "term": "マルチテナント", "full": "multi-tenant", "cat": "compute", "desc": "複数組織が同一インフラを共有する構成。共有に起因するサイドチャネルや境界漏洩のリスクを生む。" },
+    { "term": "内部者脅威", "full": "insider threat", "cat": "security", "desc": "正規のアクセス権を持つ臨床スタッフ・データエンジニア・システム管理者による情報漏洩リスク。院内化しても消えず残存する。" },
+
+    { "term": "NPfIT", "full": "National Programme for IT", "cat": "infra", "desc": "英NHSが2002年に開始した世界最大級の単一中央EHR統合計画。トップダウン・コスト超過・現場の不支持で2011年に廃止。損失は約£100〜127億で、『単一中央DB統合の失敗』の最重要反例。" },
+    { "term": "X-Road", "full": "", "cat": "infra", "desc": "エストニアの分散データ交換基盤(2008〜)。中央DBを持たず各機関がデータを保持し安全に交換する連携型の代表例。450超の機関が接続。" },
+    { "term": "KSI", "full": "Keyless Signature Infrastructure", "cat": "infra", "desc": "Guardtime製のブロックチェーン。カルテ本体は格納せず、アクセスログ・改変記録のハッシュとMerkle Root・タイムスタンプで完全性のみを証明する。『BCにカルテを格納』ではない点が重要。" },
+    { "term": "TEFCA", "full": "Trusted Exchange Framework and Common Agreement", "cat": "infra", "desc": "米国の全国的な医療情報交換の連携枠組み。QHIN同士を相互接続するが参加は自発的で、単一国家DBは作らない。" },
+    { "term": "QHIN", "full": "Qualified Health Information Network", "cat": "infra", "desc": "TEFCAで相互接続される認定医療情報ネットワーク。連携型アーキテクチャの結節点。" },
+    { "term": "gematik ePA", "full": "elektronische Patientenakte", "cat": "infra", "desc": "独の全国電子患者記録。2025年のオプトアウトで約7,200万人に自動付与されたが、実利用率は2026年初で約3.6%。『箱を配っても使われない』典型例。" },
+    { "term": "My Health Record", "full": "", "cat": "infra", "desc": "豪の集中型国家EHR。参加率は約90%(オプトアウト約10%)だがGPの約1/3が未使用。2025年に病理・画像のアップロードを法的義務化。" },
+    { "term": "連携型", "full": "federation", "cat": "infra", "desc": "各機関がデータを保持したまま標準で相互運用する方式。単一中央DBに集約しない。エストニア・北欧・米TEFCA・日本の全国医療情報プラットフォームが採る現実的な統合形態。" },
+    { "term": "全国医療情報プラットフォーム", "full": "", "cat": "infra", "desc": "日本の医療情報基盤構想。単一DBに集約せず、各機関がFHIRで出力したデータをマイナポータル経由で交換する連携型。中核が電子カルテ情報共有サービス。" },
+    { "term": "電子カルテ情報共有サービス", "full": "", "cat": "infra", "desc": "全国医療情報プラットフォームの中核サービス。3文書6情報をFHIRで連携し2025/02モデル事業開始、2026年冬頃の本格運用を目指す。任意参加・単一DBなし。" },
+    { "term": "HIE", "full": "Health Information Exchange", "cat": "infra", "desc": "医療情報交換ネットワーク。日本では200超が乱立するも、病院医師の93.5%が年間利用ゼロと低稼働の実態がある。" },
+    { "term": "ナッシュ均衡", "full": "Nash equilibrium", "cat": "infra", "desc": "各参加者が他者の戦略を所与に最適化した結果、誰も一方的に戦略を変える動機を持たない安定状態。医療データの断片化は、ベンダー・病院・政府の三者すべてに現状維持が支配戦略となる安定均衡。" },
+    { "term": "ベンダーロックイン", "full": "vendor lock-in", "cat": "infra", "desc": "特定ベンダーの製品・規格に依存し乗り換えコストが高くなる状態。EHR市場では移行コストが天文学的で、Epic等への固着(と人材ロックイン)を生む。" },
+    { "term": "情報ブロッキング", "full": "information blocking", "cat": "infra", "desc": "ベンダー・医療機関がデータ共有を不当に妨げる行為。不合理な高価格設定が最多手法で、競争的市場ほど発生しやすい。" },
+    { "term": "コンウェイの法則", "full": "Conway's Law", "cat": "infra", "desc": "システムの構造は、それを作る組織のコミュニケーション構造を写すという経験則。自律的な医療機関はIT構造も組織境界を反映して孤立化する。" },
+    { "term": "JP-CLINS", "full": "", "cat": "infra", "desc": "日本のFHIR実装ガイド。電子カルテ情報共有サービスの基盤で、患者はマイナポータルAPI経由で診療情報を閲覧できる。ブロックチェーンは使わない。" },
+
+    { "term": "ソブリンクラウド", "full": "sovereign cloud", "cat": "sovereign", "desc": "データの保存・処理・運用を特定国の法域内に閉じ、外国法の介入を排そうとするクラウド。ただし制御プレーンや課金・更新が外国親会社に依存すると主権は形骸化する。" },
+    { "term": "ソブリンウォッシング", "full": "sovereignty washing", "cat": "sovereign", "desc": "『主権』を標榜しつつ実態は米ハイパースケーラー依存で、外国法リスクを排除できていない状態。データ所在地と主権の混同を突いた批判語。" },
+    { "term": "Oracle Alloy", "full": "", "cat": "sovereign", "desc": "パートナーが自社ブランドで運用できるOracleのクラウド基盤。富士通の医療ソブリンクラウドの土台であり、ブロックチェーンを使わない中央集権モデル。" },
+    { "term": "SecNumCloud", "full": "", "cat": "sovereign", "desc": "仏ANSSIが定めるクラウドの信頼認証。外国法の影響排除など主権要件を課す。S3NS(Thales+Google)が2025年に取得。" },
+    { "term": "CLOUD Act", "full": "Clarifying Lawful Overseas Use of Data Act", "cat": "sovereign", "desc": "米当局が米企業の管理下のデータを国外保存でも開示請求できる米法。契約・技術では完全に回避できないとされ、仏Health Data HubのAzure違憲判断の決定打となった。" },
+    { "term": "Gaia-X", "full": "", "cat": "sovereign", "desc": "独仏主導の欧州クラウド連合構想(2019)。対抗すべき米大手を加盟企業に招き入れ『紙の怪物』と評され失敗。データ主権の難しさの象徴。" },
+    { "term": "データ所在地", "full": "data residency", "cat": "sovereign", "desc": "データを保存する物理的な国・地域。所在地が国内でも、運用・課金・更新が外国親会社依存なら『データ主権』とは別物。" },
+    { "term": "trustless", "full": "", "cat": "sovereign", "desc": "特定の信頼できる第三者を前提としない設計思想。ブロックチェーンが必要十分になるのは、相互不信の複数機関(trustless)が連携する限定シナリオに限られる。" }
   ],
   "findings": [
     {
@@ -1004,8 +1323,8 @@ footer a{font-weight:600}
   }).join('');
 
   // glossary render
-  var CAT_LABELS = {retrieval:'取得・検索（RAG / 構造化ナビ）',security:'セキュリティ・攻撃',crypto:'暗号・鍵・同意',compute:'計算環境（TEE / KMS）',standard:'標準・相互運用',regulation:'規制・法制度'};
-  var CAT_ORDER = ['retrieval','security','crypto','compute','standard','regulation'];
+  var CAT_LABELS = {retrieval:'取得・検索（RAG / 構造化ナビ）',security:'セキュリティ・攻撃',crypto:'暗号・鍵・同意',compute:'計算環境（TEE / KMS）',standard:'標準・相互運用',infra:'国家医療IT・統合と断片化',sovereign:'クラウド主権・法域',regulation:'規制・法制度'};
+  var CAT_ORDER = ['retrieval','security','crypto','compute','standard','infra','sovereign','regulation'];
   (function(){
     var gb = document.getElementById('glossary-body'); if(!gb) return;
     var byCat = {};
