@@ -70,6 +70,8 @@ header.top h1{margin:.1rem 0 .65rem; font-weight:800; font-size:clamp(1.5rem,1re
 .toc a{display:inline-flex; align-items:baseline; gap:.45rem; text-decoration:none; color:var(--text); font-weight:600; font-size:.83rem; padding:.45rem .8rem; border:1px solid var(--border); border-radius:9px; background:var(--surface); box-shadow:var(--shadow-sm); transition:color .15s,border-color .15s,background .15s,transform .1s}
 .toc a::before{counter-increment:toc; content:counter(toc,decimal-leading-zero); font-family:var(--mono); font-size:.82em; font-weight:700; color:var(--accent)}
 .toc a:hover{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); transform:translateY(-1px)}
+.backlink{display:inline-flex; align-items:center; gap:.4rem; font-family:var(--mono); font-size:.74rem; font-weight:600; letter-spacing:.04em; color:var(--accent-ink); text-decoration:none; padding:.34rem .7rem; border:1px solid var(--border); border-radius:8px; background:var(--surface); box-shadow:var(--shadow-sm); margin-bottom:1rem; transition:border-color .15s,background .15s,transform .1s}
+.backlink:hover{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 7%,var(--surface)); transform:translateX(2px)}
 
 /* section */
 section{padding:clamp(1.7rem,4vw,2.4rem) 0 .6rem; scroll-margin-top:1.5rem}
@@ -227,6 +229,7 @@ footer code{font-size:.82em}
 
 <header class="top">
   <div class="wrap">
+    <div><a class="backlink" href="llm-ehr.html">LLM × EHR 統合の考察（同意 → 復号 → コンテキスト取得）へ →</a></div>
     <p class="eyebrow">EHR &times; Blockchain 設計検証</p>
     <h1>電子カルテ × ブロックチェーン<br>— 設計結論と検証ステータス</h1>
     <p class="lead">過去の検討から到達した最終結論を、<strong>情報源の区分</strong>（外部で確認できた事実 / 過去会話由来の設計結論）と、<strong>2024–2026 の最新文献による検証ステータス</strong>を添えて整理したものです。各カードを開くと根拠と出典を確認できます。</p>
